@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"allowJs": true,
+		"outDir": "types",
+		"moduleResolution": "node",
+		"module": "commonjs",
+		"target": "es2020"
+	},
+	"include": ["src/**/*.js"]
+}

@@ -1,0 +1,13 @@
+test/
+dev/
+data/dns-servers.json
+data/hosts-optimized.txt
+data/valid-dns-v6-servers.json
+.nyc_output/
+.gitlab-ci.yml
+.mocharc.yml
+.editorconfig
+eslint.config.js
+tsconfig.json
+CLAUDE.md
+.claude
