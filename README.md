@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/proxinator.svg)](https://www.npmjs.com/package/proxinator)
 [![license](https://img.shields.io/npm/l/proxinator.svg)](https://github.com/deadnetco/proxinator/blob/main/LICENSE)
-[![tests](https://github.com/deadnetco/proxinator/actions/workflows/test.yml/badge.svg)](https://github.com/deadnetco/proxinator/actions/workflows/test.yml)
+[![tests](https://github.com/deadnetco/proxinator/actions/workflows/ci.yml/badge.svg)](https://github.com/deadnetco/proxinator/actions/workflows/ci.yml)
 
 Composable Node.js proxy toolkit with zero-copy TCP forwarding. Chain forward (HTTP CONNECT), reverse (SNI), and SOCKS5 proxies in a few lines — traffic flows through the kernel, not your code.
 
