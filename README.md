@@ -1,23 +1,10 @@
 # Proxinator
 
-Composable Node.js proxy toolkit. Supports forward (HTTP CONNECT), reverse (SNI-based TCP), and SOCKS5 proxy modes with proxy chaining.
+[![npm version](https://img.shields.io/npm/v/proxinator.svg)](https://www.npmjs.com/package/proxinator)
+[![license](https://img.shields.io/npm/l/proxinator.svg)](https://github.com/deadnetco/proxinator/blob/main/LICENSE)
+[![tests](https://github.com/deadnetco/proxinator/actions/workflows/test.yml/badge.svg)](https://github.com/deadnetco/proxinator/actions/workflows/test.yml)
 
-## Features
-
-- **Forward Proxy Server** — HTTP CONNECT proxy with auth parsing and transform streams
-- **Reverse Proxy Server** — TCP proxy with TLS SNI hostname extraction
-- **SOCKS5 Proxy Server** — SOCKS5 proxy with username/password auth support
-- **Forward Proxy Client** — Tunnel connections through upstream HTTP/HTTPS proxies
-- **SOCKS5 Proxy Client** — Tunnel connections through upstream SOCKS5 proxies with auth support
-- **Reverse Proxy Client** — Direct TCP connections with optional DNS caching
-- **Proxy Chaining** — Chain multiple proxies into multi-hop tunnels with protocol-based client selection (HTTP, HTTPS, SOCKS5)
-- **http.Agent** — Drop-in agent for http.request/https.request that tunnels through proxy chains
-- **SNI Parser** — Extract hostnames from TLS ClientHello (no external deps)
-- **DNS Randomization** — Spread queries across thousands of public DNS servers (IPv4 + IPv6)
-- **DNS Caching** — cacheable-lookup with custom resolver
-- **Load Balancer** — Weighted random candidate selection
-- **Measurement Streams** — Speed, bandwidth, and chainable transform streams for traffic monitoring
-- **Hostname Obfuscation** — Convert IPs/hostnames to nip.io format to bypass proxy restrictions
+Composable Node.js proxy toolkit with zero-copy TCP forwarding. Chain forward (HTTP CONNECT), reverse (SNI), and SOCKS5 proxies in a few lines — traffic flows through the kernel, not your code.
 
 ## Installation
 
@@ -25,9 +12,33 @@ Composable Node.js proxy toolkit. Supports forward (HTTP CONNECT), reverse (SNI-
 yarn add proxinator
 ```
 
+## Quick Start
+
+```javascript
+const proxinator = require("proxinator");
+
+const proxy = proxinator.server.forward();
+
+proxy.on("connection", (connection) => {
+	proxinator.client.reverse(connection.getDestination()).then((socket) => {
+		connection.bind(socket);
+	});
+});
+
+proxy.http.listen(8080);
+```
+
+## Features
+
+- **Servers** — Forward (HTTP CONNECT), Reverse (SNI), SOCKS5
+- **Clients** — Forward, SOCKS5, Reverse (direct), Chaining, http.Agent
+- **Utilities** — SNI parser, DNS randomization + caching, load balancer, measurement streams, hostname obfuscation
+
 ## Usage
 
-### Forward Proxy Server
+### Servers
+
+#### Forward Proxy Server
 
 Accept HTTP CONNECT requests and tunnel connections:
 
@@ -50,7 +61,7 @@ proxy.on("connection", (connection) => {
 proxy.http.listen(8080);
 ```
 
-### Reverse Proxy Server
+#### Reverse Proxy Server
 
 Accept TCP connections and route by SNI domain:
 
@@ -74,7 +85,7 @@ proxy.on("connection", (connection) => {
 proxy.tcp.listen(443);
 ```
 
-### SOCKS5 Proxy Server
+#### SOCKS5 Proxy Server
 
 Accept SOCKS5 CONNECT requests and tunnel connections:
 
@@ -109,7 +120,9 @@ const proxy = proxinator.server.socks5(null, {
 });
 ```
 
-### Forward Proxy Client
+### Clients
+
+#### Forward Proxy Client
 
 Connect through an upstream proxy:
 
@@ -124,7 +137,7 @@ proxinator.client.forward(proxy, target).then((socket) => {
 });
 ```
 
-### SOCKS5 Proxy Client
+#### SOCKS5 Proxy Client
 
 Connect through an upstream SOCKS5 proxy:
 
@@ -139,7 +152,24 @@ proxinator.client.socks5(proxy, target).then((socket) => {
 });
 ```
 
-### Proxy Chaining
+#### Pre-existing Sockets
+
+Clients can also accept a pre-existing socket for manual chaining:
+
+```javascript
+// Send CONNECT through an existing socket
+proxinator.client.forward(proxy, target, { socket: existingSocket });
+
+// Send SOCKS handshake through an existing socket
+proxinator.client.socks5(proxy, target, { socket: existingSocket });
+
+// Return an existing socket directly (passthrough)
+proxinator.client.reverse(target, { socket: existingSocket });
+```
+
+### Chaining & Agent
+
+#### Proxy Chaining
 
 Chain connections through multiple proxies. Each proxy becomes a hop through the previous tunnel. Supports mixing HTTP, HTTPS, and SOCKS5 proxies:
 
@@ -171,7 +201,7 @@ const lookup = proxinator.utils.dnsLookup();
 proxinator.client.chain([proxyA, proxyB], target, { lookup });
 ```
 
-### http.Agent
+#### http.Agent
 
 Use proxy chains as a drop-in agent for `http.request` and `https.request`:
 
@@ -189,7 +219,7 @@ http.get("http://example.com", { agent }, (res) => {
 });
 ```
 
-### Split IP + SNI (Agent Connect Transform)
+#### Split IP + SNI (Agent Connect Transform)
 
 Use the agent's `connect` option to obfuscate the CONNECT target while the real hostname is used as TLS SNI. The proxy only sees the obfuscated address, but the TLS handshake inside the tunnel uses the original hostname:
 
@@ -215,22 +245,9 @@ https.get("https://example.com", { agent }, (res) => {
 });
 ```
 
-### Pre-existing Sockets
+### Routing
 
-Clients can also accept a pre-existing socket for manual chaining:
-
-```javascript
-// Send CONNECT through an existing socket
-proxinator.client.forward(proxy, target, { socket: existingSocket });
-
-// Send SOCKS handshake through an existing socket
-proxinator.client.socks5(proxy, target, { socket: existingSocket });
-
-// Return an existing socket directly (passthrough)
-proxinator.client.reverse(target, { socket: existingSocket });
-```
-
-### Advanced Routing
+#### Advanced Routing
 
 Route specific domains directly while proxying everything else through an upstream proxy:
 
@@ -260,7 +277,9 @@ server.on("connection", (connection) => {
 server.http.listen(8080);
 ```
 
-### SNI Parser
+### Utilities
+
+#### SNI Parser
 
 Extract hostname from TLS ClientHello:
 
@@ -274,7 +293,7 @@ sni.isClientHello(buffer); // true/false
 sni.parseSNI(buffer); // "example.com" or null
 ```
 
-### Load Balancer
+#### Load Balancer
 
 Weighted random selection:
 
@@ -289,7 +308,7 @@ pool.push("server-b", 1); // weight 1
 pool.getRandomCandidate(); // "server-a" ~75%, "server-b" ~25%
 ```
 
-### Measurement Streams
+#### Measurement Streams
 
 Chain speed and bandwidth measurement into a single transform, then plug it into `bind()` to monitor traffic:
 
@@ -325,7 +344,7 @@ server.on("connection", (connection) => {
 server.http.listen(8080);
 ```
 
-### DNS Configuration
+#### DNS Configuration
 
 By default, clients use system DNS. You can optionally set up random DNS resolution and caching:
 
@@ -370,7 +389,7 @@ proxinator.client.reverse(target, { family: 6 });
 const ipv4Agent = proxinator.client.agent([proxyA], { lookup, family: 4 });
 ```
 
-### Hostname Obfuscation
+#### Hostname Obfuscation
 
 Convert hostnames or IPs to nip.io format to bypass proxy provider restrictions:
 
@@ -385,7 +404,9 @@ nipio.convert("192.168.1.1");   // Promise<"c0a80101.nip.io">
 nipio.convert("example.com");   // Promise<"5db8d822.nip.io">
 ```
 
-### Connection Events
+### Events
+
+#### Connection Events
 
 All servers (forward, reverse, SOCKS5) emit events for monitoring and logging:
 
@@ -438,4 +459,4 @@ The result is that sustained throughput is limited by the OS and network, not by
 
 ## License
 
-UNLICENSED
+GPL-2.0
