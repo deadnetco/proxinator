@@ -1,6 +1,6 @@
 {
   "name": "proxinator",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Proxinator is proxy swiss-army knife",
   "main": "src/index.js",
   "repository": "git@github.com:deadnetco/proxinator.git",
