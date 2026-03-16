@@ -32,7 +32,7 @@ proxy.http.listen(8080);
 
 - **Servers** — Forward (HTTP CONNECT), Reverse (SNI), SOCKS5
 - **Clients** — Forward, SOCKS5, Reverse (direct), Chaining, http.Agent
-- **Utilities** — SNI parser, DNS randomization + caching, load balancer, measurement streams, hostname obfuscation
+- **Utilities** — SNI parser, DNS randomization + caching + bogus response filtering, load balancer, measurement streams, hostname obfuscation
 
 ## Usage
 
@@ -376,6 +376,16 @@ proxinator.client.reverse(target, { lookup: cache.lookup });
 const systemCache = proxinator.utils.dnsCache();
 
 proxinator.client.reverse(target, { lookup: systemCache.lookup });
+
+// Bogus IP filtering (enabled by default — retries when DNS returns loopback, private, etc.)
+// Customize which ranges are considered bogus:
+const filteredLookup = proxinator.utils.dnsLookup(null, {
+	bogusRanges: ["loopback", "private"],  // only filter these ranges
+	maxBogusRetries: 5                      // retry up to 5 times (default: 3)
+});
+
+// Disable bogus filtering entirely:
+const unfilteredLookup = proxinator.utils.dnsLookup(null, { bogusRanges: [] });
 
 // IPv4 only — restrict DNS resolution to A records
 proxinator.client.reverse(target, { lookup, family: 4 });
