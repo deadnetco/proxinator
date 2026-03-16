@@ -9,14 +9,15 @@ const createCache = require("../dns-cache");
 /**
  * Create a cached DNS lookup function with optional random resolver.
  * @param {string[]} [servers] - DNS server IPs. Uses built-in list when omitted. Pass empty array for system DNS.
+ * @param {Object} [options] - Options forwarded to createResolver (bogusRanges, maxBogusRetries)
  * @returns {Function} Lookup function compatible with net.connect/http.request
  */
-module.exports = (servers) => {
+module.exports = (servers, options) => {
 	if (Array.isArray(servers) && servers.length === 0) {
 		return createCache().lookup;
 	}
 
-	const resolver = createResolver(servers);
+	const resolver = createResolver(servers, options);
 	const cache = createCache(resolver);
 
 	return cache.lookup;
