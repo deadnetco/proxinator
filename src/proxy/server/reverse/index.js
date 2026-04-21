@@ -184,7 +184,7 @@ module.exports = (tcpServerOptional) => {
 					 * @param {Error} error - Error (unused, kept for API consistency with forward/socks5 servers)
 					 */
 					error: () => {
-						clientSocket.end();
+						connection.end();
 					},
 
 					/**
@@ -192,6 +192,10 @@ module.exports = (tcpServerOptional) => {
 					 * @param {...*} args - Arguments passed to socket.end()
 					 */
 					end: (...args) => {
+						// Resume in case the socket is still paused (e.g. end() called
+						// before bind() or after waitSNI re-pauses); otherwise FIN from
+						// the peer is never read and the half-closed socket hangs.
+						clientSocket.resume();
 						return clientSocket.end(...args);
 					},
 

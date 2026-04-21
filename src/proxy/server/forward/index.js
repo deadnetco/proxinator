@@ -208,6 +208,10 @@ module.exports = (httpServerOptional) => {
 					 * @param {...*} args - Arguments passed to socket.end()
 					 */
 					end: (...args) => {
+						// Resume in case the socket is still paused (e.g. end() called
+						// before bind()); otherwise FIN from the peer is never read and
+						// the half-closed socket hangs.
+						req.socket.resume();
 						return req.socket.end(...args);
 					},
 
