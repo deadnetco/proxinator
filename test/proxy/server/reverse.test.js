@@ -87,6 +87,61 @@ describe("Reverse Proxy Server", () => {
 		});
 	});
 
+	it("should reject waitSNI when SNI parsing throws", function (done) {
+		this.timeout(3000);
+
+		const sni = require("../../../src/utils/sni");
+		const originalParseSNI = sni.parseSNI;
+		sni.parseSNI = () => {
+			throw new Error("parse boom");
+		};
+
+		proxy = createReverseServer();
+
+		// Absorb the _emitError fallback so it doesn't leak to stderr
+		proxy.on("error", () => {});
+
+		proxy.on("connection", (connection) => {
+			const hangTimer = setTimeout(() => {
+				sni.parseSNI = originalParseSNI;
+				connection.socket.destroy();
+				done(new Error("waitSNI promise never settled"));
+			}, 1500);
+
+			connection.waitSNI().then((hostname) => {
+				clearTimeout(hangTimer);
+				sni.parseSNI = originalParseSNI;
+				connection.socket.destroy();
+				done(new Error("waitSNI resolved unexpectedly with " + hostname));
+			}).catch((error) => {
+				clearTimeout(hangTimer);
+				sni.parseSNI = originalParseSNI;
+				connection.socket.destroy();
+				try {
+					assert.strictEqual(error.message, "parse boom");
+					done();
+				} catch (assertionError) {
+					done(assertionError);
+				}
+			});
+		});
+
+		proxy.tcp.listen(0, () => {
+			const port = proxy.tcp.address().port;
+
+			// Minimal buffer that passes isClientHello: byte 0 = 22, byte 1 = 0x03, byte 5 = 0x01
+			const fakeClientHello = Buffer.alloc(16);
+			fakeClientHello[0] = 22;
+			fakeClientHello[1] = 0x03;
+			fakeClientHello[5] = 0x01;
+
+			const client = net.connect({ port: port, host: "127.0.0.1" }, () => {
+				client.write(fakeClientHello);
+			});
+			client.on("error", () => {});
+		});
+	});
+
 	it("should extract SNI hostname via waitSNI", (done) => {
 		proxy = createReverseServer();
 

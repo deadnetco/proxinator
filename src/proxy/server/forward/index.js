@@ -89,6 +89,10 @@ module.exports = (httpServerOptional) => {
 
 							const colonIndex = credentials.indexOf(":");
 
+							if(colonIndex === -1) {
+								return undefined;
+							}
+
 							const username = credentials.slice(0, colonIndex);
 							const password = credentials.slice(colonIndex + 1);
 

@@ -113,7 +113,7 @@ module.exports = (tcpServerOptional) => {
 									clientSocket.pause();
 								} catch (e) {
 									cleanup();
-									server._emitError(e, connection);
+									reject(e);
 									return;
 								}
 							};

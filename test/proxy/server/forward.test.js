@@ -132,6 +132,36 @@ describe("Forward Proxy Server", () => {
 		});
 	});
 
+	it("should return undefined auth when Basic credentials have no colon", (done) => {
+		proxy = createForwardServer();
+
+		proxy.on("connection", (connection) => {
+			const auth = connection.getAuth();
+			assert.strictEqual(auth, undefined);
+
+			connection.end();
+			done();
+		});
+
+		proxy.http.listen(0, () => {
+			const port = proxy.http.address().port;
+			const credentials = Buffer.from("admin").toString("base64");
+
+			const req = http.request({
+				host: "127.0.0.1",
+				port: port,
+				method: "CONNECT",
+				path: "example.com:443",
+				headers: {
+					"Proxy-Authorization": "Basic " + credentials
+				}
+			});
+
+			req.end();
+			req.on("error", () => {});
+		});
+	});
+
 	it("should return undefined auth when no header", (done) => {
 		proxy = createForwardServer();
 
