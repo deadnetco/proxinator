@@ -56,6 +56,8 @@ module.exports = (httpServerOptional) => {
 
 				req.socket.on("error", (error) => {
 					server._emitError( error);
+
+					req.socket.destroy();
 				});
 
 				const connection = {
@@ -181,10 +183,16 @@ module.exports = (httpServerOptional) => {
 							}
 
 							server._emitError( error, connection);
+
+							socket.destroy();
+							clientSocket.destroy();
 						});
 
 						socket.on("error", error => {
 							server._emitError( error, connection);
+
+							socket.destroy();
+							clientSocket.destroy();
 						});
 
 						writeResponse(req, clientSocket, 200, "Connection Established");

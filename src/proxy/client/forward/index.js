@@ -84,6 +84,12 @@ module.exports = (proxy, host, options) => {
 		});
 
 		req.on("error", (error) => {
+			req.destroy();
+
+			if(req.socket) {
+				req.socket.destroy();
+			}
+
 			reject(error);
 		});
 	});
