@@ -174,6 +174,14 @@ module.exports = (httpServerOptional) => {
 							clientSocket.end();
 						});
 
+						socket.on("end", () => {
+							clientSocket.destroy();
+						});
+
+						clientSocket.on("end", () => {
+							socket.destroy();
+						});
+
 						clientSocket.on("error", error => {
 							if(error.code === "ECONNRESET") {
 								socket.end();
@@ -182,14 +190,18 @@ module.exports = (httpServerOptional) => {
 								return;
 							}
 
-							server._emitError( error, connection);
+							if(error.code !== "EPIPE" && error.code !== "ERR_STREAM_WRITE_AFTER_END") {
+								server._emitError( error, connection);
+							}
 
 							socket.destroy();
 							clientSocket.destroy();
 						});
 
 						socket.on("error", error => {
-							server._emitError( error, connection);
+							if(error.code !== "EPIPE" && error.code !== "ERR_STREAM_WRITE_AFTER_END") {
+								server._emitError( error, connection);
+							}
 
 							socket.destroy();
 							clientSocket.destroy();
