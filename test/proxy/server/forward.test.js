@@ -471,6 +471,85 @@ describe("Forward Proxy Server", () => {
 		});
 	});
 
+	it("should forward a peer half-close as a half-close, not a destroy", (done) => {
+		// Regression: the "end" handlers used to call destroy() on the partner
+		// socket. When one peer half-closed (FIN) — e.g. a tunnelled HTTP/2 server
+		// sending GOAWAY + final frames before recycling the connection — destroy()
+		// threw away bytes still buffered in the pipe, truncating a frame mid-stream
+		// so the peer's nghttp2 raised -505 (NGHTTP2_ERR_PROTO) instead of seeing a
+		// clean end. The fix sets allowHalfOpen on both sockets and forwards the FIN
+		// with end() so buffered bytes drain.
+		proxy = createForwardServer();
+
+		const targetServer = net.createServer((targetSocket) => {
+			targetSocket.on("error", () => {});
+		});
+		extraServers.push(targetServer);
+
+		proxy.on("connection", (connection) => {
+			targetServer.listen(0, () => {
+				const targetPort = targetServer.address().port;
+				const target = net.connect({ port: targetPort, host: "127.0.0.1" });
+
+				target.on("connect", () => {
+					connection.bind(target);
+
+					const clientSocket = connection.socket;
+
+					// Both tunnel sockets must allow half-open so a FIN does not
+					// auto-end the writable side and trigger the EPIPE race.
+					assert.strictEqual(clientSocket.allowHalfOpen, true);
+					assert.strictEqual(target.allowHalfOpen, true);
+
+					let ended = false;
+					let destroyed = false;
+
+					const realEnd = clientSocket.end.bind(clientSocket);
+					clientSocket.end = (...args) => {
+						ended = true;
+
+						return realEnd(...args);
+					};
+
+					const realDestroy = clientSocket.destroy.bind(clientSocket);
+					clientSocket.destroy = (...args) => {
+						destroyed = true;
+
+						return realDestroy(...args);
+					};
+
+					// Target half-closes (sends FIN).
+					target.emit("end");
+
+					setImmediate(() => {
+						assert.ok(ended, "FIN should be forwarded to the partner via end()");
+						assert.ok(!destroyed, "partner must not be destroyed on a half-close");
+
+						connection.end();
+						done();
+					});
+				});
+
+				target.on("error", () => {});
+			});
+		});
+
+		proxy.http.listen(0, () => {
+			const port = proxy.http.address().port;
+
+			const req = http.request({
+				host: "127.0.0.1",
+				port: port,
+				method: "CONNECT",
+				path: "example.com:443"
+			});
+
+			req.end();
+			req.on("connect", () => {});
+			req.on("error", () => {});
+		});
+	});
+
 	it("should end client when target closes", (done) => {
 		proxy = createForwardServer();
 
