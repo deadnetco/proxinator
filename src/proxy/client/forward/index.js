@@ -71,7 +71,7 @@ module.exports = (proxy, host, options) => {
 
 		req.end();
 
-		req.on("connect", (res, socket) => {
+		req.on("connect", (res, socket, head) => {
 			if(res.statusCode !== 200) {
 				socket.destroy();
 
@@ -80,6 +80,15 @@ module.exports = (proxy, host, options) => {
 
 				return reject(error);
 			}
+
+			// Any bytes the upstream sent right after the 200 (a server-first
+			// banner coalesced into the same segment) were already read off the
+			// socket and handed to us here. Put them back so the caller does not
+			// lose them when it starts reading/piping.
+			if(head && head.length > 0) {
+				socket.unshift(head);
+			}
+
 			resolve(socket);
 		});
 

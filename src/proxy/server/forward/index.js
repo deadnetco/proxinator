@@ -10,28 +10,41 @@ const normalizeFamily = require("../../../utils/ip").normalizeFamily;
 const PROXY_AGENT = "Proxinator";
 
 /**
- * Write an HTTP response to a socket using ServerResponse
- * @param {http.IncomingMessage} req - Original request
+ * Write an HTTP response (status line + headers, no body) to a socket.
+ *
+ * Written as a raw string rather than via http.ServerResponse on purpose: for a
+ * 2xx reply to CONNECT, ServerResponse adds "Transfer-Encoding: chunked" and a
+ * "0\r\n\r\n" terminator, which then leak into the established tunnel and
+ * corrupt it (e.g. TLS "wrong version number"). A raw write keeps every reply -
+ * the 200 and the error responses - cleanly framed.
+ *
+ * @param {http.IncomingMessage} _req - Original request (unused; kept for call compatibility)
  * @param {net.Socket} socket - Socket to write to
  * @param {number} statusCode - HTTP status code
  * @param {string} statusMessage - HTTP status message
  * @param {object} [headers] - Additional headers
  */
-const writeResponse = (req, socket, statusCode, statusMessage, headers) => {
+const writeResponse = (_req, socket, statusCode, statusMessage, headers) => {
 	if (socket.destroyed || !socket.writable) {
 		return;
 	}
-
-	const res = new http.ServerResponse(req);
-	res.assignSocket(socket);
 
 	const responseHeaders = Object.assign({
 		"Connection": "Close",
 		"Proxy-agent": PROXY_AGENT
 	}, headers);
 
-	res.writeHead(statusCode, statusMessage, responseHeaders);
-	res.end();
+	const headerLines = Object.keys(responseHeaders).map((name) => {
+		return name + ": " + responseHeaders[name];
+	});
+
+	// Strip CR/LF from the status message so it can't split the response.
+	const safeMessage = String(statusMessage).replace(/[\r\n]/g, " ");
+
+	socket.write(
+		"HTTP/1.1 " + statusCode + " " + safeMessage + "\r\n" +
+		headerLines.join("\r\n") + "\r\n\r\n"
+	);
 };
 
 /**
@@ -166,6 +179,9 @@ module.exports = (httpServerOptional) => {
 							socket.write(connection._head);
 						}
 
+						socket.allowHalfOpen = true;
+						clientSocket.allowHalfOpen = true;
+
 						clientSocket.on("close", () => {
 							socket.end();
 						});
@@ -175,11 +191,11 @@ module.exports = (httpServerOptional) => {
 						});
 
 						socket.on("end", () => {
-							clientSocket.destroy();
+							clientSocket.end();
 						});
 
 						clientSocket.on("end", () => {
-							socket.destroy();
+							socket.end();
 						});
 
 						clientSocket.on("error", error => {

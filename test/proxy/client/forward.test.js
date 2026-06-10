@@ -111,6 +111,35 @@ describe("Forward Proxy Client", () => {
 		});
 	});
 
+	it("should replay bytes coalesced with the CONNECT 200 (server-speaks-first)", (done) => {
+		const banner = "220 service ready\r\n";
+
+		mockProxy = http.createServer();
+
+		mockProxy.on("connect", (_req, clientSocket) => {
+			// Write the 200 and the banner as ONE chunk, so the banner arrives
+			// as the connect event's `head` rather than as later socket data.
+			clientSocket.write(
+				"HTTP/1.1 200 Connection Established\r\n" +
+				"\r\n" +
+				banner
+			);
+		});
+
+		mockProxy.listen(0, () => {
+			const port = mockProxy.address().port;
+			const proxyUrl = new URL("http://127.0.0.1:" + port);
+
+			forwardClient(proxyUrl, { host: "example.com:25" }).then((socket) => {
+				socket.on("data", (data) => {
+					assert.strictEqual(data.toString(), banner);
+					socket.destroy();
+					done();
+				});
+			});
+		});
+	});
+
 	it("should reject on non-200 response", (done) => {
 		mockProxy = http.createServer();
 
