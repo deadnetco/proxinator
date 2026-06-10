@@ -37,6 +37,7 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 ### Measurement (`src/measure/`)
 - `src/measure/speed/index.js` — Transform stream measuring throughput (bytes/sec) over rolling 5s window
 - `src/measure/bandwidth/index.js` — Transform stream tracking total bytes transferred
+- `src/measure/slowdown/index.js` — Transform stream throttling throughput to a target bytes/sec by delaying each chunk. Accepts optional `rate` (defaults to 1 MiB/s). Exposes `getRate()`, emits "slowdown" events with the applied per-chunk delay (ms). Inverse of speed/bandwidth meters; pluggable into bind() like the others
 - `src/measure/chain/index.js` — Chains multiple transform factories into one, forwarding events
 
 ### Dev Tools (`dev/`)

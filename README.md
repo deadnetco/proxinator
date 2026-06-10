@@ -32,7 +32,7 @@ proxy.http.listen(8080);
 
 - **Servers** — Forward (HTTP CONNECT), Reverse (SNI), SOCKS5
 - **Clients** — Forward, SOCKS5, Reverse (direct), Chaining, http.Agent
-- **Utilities** — SNI parser, DNS randomization + caching + bogus response filtering, load balancer, measurement streams, hostname obfuscation
+- **Utilities** — SNI parser, DNS randomization + caching + bogus response filtering, load balancer, measurement + throttling streams, hostname obfuscation
 
 ## Usage
 
@@ -343,6 +343,44 @@ server.on("connection", (connection) => {
 
 server.http.listen(8080);
 ```
+
+#### Throttle Simulator
+
+`measure.slowdown` is the inverse of the speed and bandwidth meters: instead of
+measuring throughput it **limits** it, pacing each chunk through to a target rate
+(bytes/sec) by delaying delivery. Useful for simulating slow links, testing
+backpressure handling, or shaping bandwidth per connection. It's a plain
+pass-through transform, so it plugs into `bind()` and composes through
+`measure.chain` exactly like the meters:
+
+```javascript
+const proxinator = require("proxinator");
+
+const server = proxinator.server.forward();
+
+server.on("connection", (connection) => {
+	const destination = connection.getDestination();
+
+	// Throttle server-to-client traffic to 256 KiB/sec
+	const throttle = proxinator.measure.slowdown(256 * 1024);
+
+	throttle.on("slowdown", (delay) => {
+		console.log(destination.hostname, "delayed chunk by", Math.round(delay), "ms");
+	});
+
+	proxinator.client.reverse(destination).then((socket) => {
+		// Pass as the up transform to throttle the download direction
+		connection.bind(socket, throttle);
+	});
+});
+
+server.http.listen(8080);
+```
+
+The factory takes an optional rate in bytes per second (defaults to 1 MiB/s) and
+exposes `getRate()`. Apply it as the `up` transform to throttle downloads, or as
+the `down` transform to throttle uploads. Chaining a meter and a throttle
+together measures and shapes the same stream in one pass.
 
 #### DNS Configuration
 
