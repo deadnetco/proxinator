@@ -198,30 +198,21 @@ module.exports = (httpServerOptional) => {
 							socket.end();
 						});
 
-						clientSocket.on("error", error => {
-							if(error.code === "ECONNRESET") {
-								socket.end();
-								clientSocket.end();
-
-								return;
-							}
-
-							if(error.code !== "EPIPE" && error.code !== "ERR_STREAM_WRITE_AFTER_END") {
+						// An error means the connection is already broken, so abort with
+						// destroy() on both sides. end() (graceful flush) is only correct
+						// for a clean close (see 'end'/'close' above). ECONNRESET/EPIPE/
+						// write-after-end are benign teardown noise and not reported.
+						const onError = error => {
+							if(error.code !== "ECONNRESET" && error.code !== "EPIPE" && error.code !== "ERR_STREAM_WRITE_AFTER_END") {
 								server._emitError( error, connection);
 							}
 
 							socket.destroy();
 							clientSocket.destroy();
-						});
+						};
 
-						socket.on("error", error => {
-							if(error.code !== "EPIPE" && error.code !== "ERR_STREAM_WRITE_AFTER_END") {
-								server._emitError( error, connection);
-							}
-
-							socket.destroy();
-							clientSocket.destroy();
-						});
+						clientSocket.on("error", onError);
+						socket.on("error", onError);
 
 						writeResponse(req, clientSocket, 200, "Connection Established");
 
