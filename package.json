@@ -1,6 +1,6 @@
 {
   "name": "proxinator",
-  "version": "0.0.8",
+  "version": "1.0.0",
   "description": "Proxinator is proxy swiss-army knife",
   "main": "src/index.js",
   "repository": {
