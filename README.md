@@ -6,7 +6,7 @@
 [![license](https://img.shields.io/npm/l/proxinator.svg)](https://github.com/deadnetco/proxinator/blob/main/LICENSE)
 [![tests](https://github.com/deadnetco/proxinator/actions/workflows/ci.yml/badge.svg)](https://github.com/deadnetco/proxinator/actions/workflows/ci.yml)
 
-Composable Node.js proxy toolkit with zero-copy TCP forwarding. Chain forward (HTTP CONNECT), reverse (SNI), and SOCKS5 proxies in a few lines — traffic flows through the kernel, not your code.
+Composable Node.js proxy toolkit for programmable routing. Chain forward (HTTP CONNECT), reverse (SNI), and SOCKS5 proxies in a few lines — your code decides where each connection goes, then Node.js takes over the data path with no per-byte JS.
 
 ## Installation
 
