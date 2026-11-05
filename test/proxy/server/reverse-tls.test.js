@@ -24,10 +24,12 @@ describe("Reverse Proxy Server - real TLS", function () {
 	let target;
 	let proxy;
 	let sniChunks;
+	let sniBytes;
 	let sniHostname;
 
 	beforeEach((done) => {
 		sniChunks = 0;
+		sniBytes = 0;
 		sniHostname = undefined;
 
 		// TLS server answers with the SNI it saw plus the first message received
@@ -41,9 +43,10 @@ describe("Reverse Proxy Server - real TLS", function () {
 		proxy.on("error", () => {});
 
 		proxy.on("connection", (connection) => {
-			connection.socket.on("data", () => {
+			connection.socket.on("data", (data) => {
 				if (sniHostname === undefined) {
 					sniChunks++;
+					sniBytes += data.length;
 				}
 			});
 
@@ -105,13 +108,25 @@ describe("Reverse Proxy Server - real TLS", function () {
 		});
 	};
 
+	// The ClientHello is ~1.6KB on OpenSSL 3.5+ (post-quantum key share) but
+	// only a few hundred bytes on older OpenSSL (Node 20), where it fits in
+	// the larger segments - only assert a split when one had to happen.
 	[1460, 512, 100].forEach((segmentSize) => {
 		it("should complete a verified TLS session with ClientHello split into " + segmentSize + "-byte segments", () => {
 			return request("split.example.com", segmentSize).then((response) => {
 				assert.strictEqual(sniHostname, "split.example.com");
 				assert.strictEqual(response, "split.example.com:ping");
-				assert.ok(sniChunks > 1, "ClientHello reached the proxy in " + sniChunks + " segment(s)");
+				if (sniBytes > segmentSize) {
+					assert.ok(sniChunks > 1, sniBytes + "-byte ClientHello reached the proxy in " + sniChunks + " segment(s)");
+				}
 			});
+		});
+	});
+
+	it("should split the ClientHello on every Node version with 100-byte segments", () => {
+		return request("small.example.com", 100).then(() => {
+			assert.ok(sniBytes > 100, "ClientHello is only " + sniBytes + " bytes");
+			assert.ok(sniChunks > 1, "ClientHello reached the proxy in " + sniChunks + " segment(s)");
 		});
 	});
 
