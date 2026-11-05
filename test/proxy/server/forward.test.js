@@ -99,6 +99,34 @@ describe("Forward Proxy Server", () => {
 		});
 	});
 
+	it("should default destination port to 443 when CONNECT omits it", (done) => {
+		proxy = createForwardServer();
+
+		proxy.on("connection", (connection) => {
+			const dest = connection.getDestination();
+			assert.strictEqual(dest.hostname, "example.com");
+			assert.strictEqual(dest.port, "443");
+			assert.strictEqual(dest.host, "example.com:443");
+
+			connection.end();
+			done();
+		});
+
+		proxy.http.listen(0, () => {
+			const port = proxy.http.address().port;
+
+			const req = http.request({
+				host: "127.0.0.1",
+				port: port,
+				method: "CONNECT",
+				path: "example.com"
+			});
+
+			req.end();
+			req.on("error", () => {});
+		});
+	});
+
 	it("should parse Basic proxy auth", (done) => {
 		proxy = createForwardServer();
 

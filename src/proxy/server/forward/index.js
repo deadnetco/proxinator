@@ -9,6 +9,9 @@ const normalizeFamily = require("../../../utils/ip").normalizeFamily;
 
 const PROXY_AGENT = "Proxinator";
 
+/** @type {string} Port assumed when a CONNECT authority omits it (portless CONNECT means HTTPS in practice) */
+const DEFAULT_CONNECT_PORT = "443";
+
 /**
  * Write an HTTP response (status line + headers, no body) to a socket.
  *
@@ -150,7 +153,18 @@ module.exports = (httpServerOptional) => {
 
 					/** @returns {URL} Destination URL parsed from CONNECT target */
 					getDestination: () => {
-						return new URL(`tcp://${req.url}`);
+						const destination = new URL(`tcp://${req.url}`);
+
+						// Some clients send a bare hostname (no port). Authority-form
+						// requires host:port, and upstream proxies reply to the
+						// malformed CONNECT with something that is not HTTP, which
+						// surfaces as "Parse Error: Expected HTTP/". Normalise to the
+						// default HTTPS port so the whole forward path stays well-formed.
+						if(destination.port === "") {
+							destination.port = DEFAULT_CONNECT_PORT;
+						}
+
+						return destination;
 					},
 
 					/**
