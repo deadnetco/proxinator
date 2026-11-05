@@ -500,7 +500,7 @@ Available events:
 
 ## How It Works
 
-Proxinator is a thin routing layer. Once a connection is established and `bind()` is called, it gets out of the way — `socket.pipe(socket)` hands data transfer to Node's stream machinery on top of libuv. Each chunk (typically up to 64KB) is read from the kernel into a native Buffer, passed through a single `data` callback and written straight back to the kernel. Buffers live outside the JavaScript heap, so traffic is never turned into JS strings or objects, and the per-chunk cost is one callback, not per-byte work.
+Proxinator is a thin routing layer. Once a connection is established and `bind()` is called, Node.js takes over entirely — no Proxinator code runs on the data path; `socket.pipe(socket)` hands transfer to Node's stream machinery on top of libuv. Each chunk (typically up to 64KB) is read from the kernel into a native Buffer, passed through a single `data` callback and written straight back to the kernel. Buffers live outside the JavaScript heap, so traffic is never turned into JS strings or objects, and the per-chunk cost is one callback, not per-byte work.
 
 This means:
 - **No per-byte JS overhead** — data moves through native buffers, one callback per chunk, not JS strings or objects
