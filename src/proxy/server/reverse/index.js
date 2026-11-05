@@ -15,6 +15,7 @@ const SNI_TIMEOUT = 10000;
 const MAX_CLIENT_HELLO_SIZE = 65536;
 const normalizeAddress = require("../../../utils/ip").normalizeAddress;
 const normalizeFamily = require("../../../utils/ip").normalizeFamily;
+const tunnel = require("../../../utils/tunnel");
 
 /**
  * Create a reverse proxy server
@@ -143,51 +144,25 @@ module.exports = (tcpServerOptional) => {
 					 * @param {net.Socket} socket - Target socket to pipe to/from
 					 * @param {stream.Transform} [up] - Optional transform stream for server-to-client data
 					 * @param {stream.Transform} [down] - Optional transform stream for client-to-server data
+					 * @param {Object} [options] - Optional settings
+					 * @param {number} [options.idleTimeout] - Destroy the tunnel after this many ms with no traffic in either direction; emits "timeout" on the server
 					 */
-					bind: (socket, up, down) => {
+					bind: (socket, up, down, options) => {
 						if(connection._head.length > 0) {
 							socket.write(connection._head);
 						}
 
-						clientSocket.on("close", () => {
-							socket.end();
-						});
-
-						socket.on("close", () => {
-							clientSocket.end();
-						});
-
-						clientSocket.on("error", error => {
-							if(error.code === "ECONNRESET") {
-								socket.end();
-								clientSocket.end();
-
-								return;
+						tunnel(clientSocket, socket, {
+							up: up,
+							down: down,
+							idleTimeout: (options || {}).idleTimeout,
+							onError: (error) => {
+								server._emitError(error, connection);
+							},
+							onTimeout: () => {
+								server._events.emit("timeout", connection);
 							}
-
-							server._emitError( error, connection);
 						});
-
-						socket.on("error", error => {
-							server._emitError( error, connection);
-						});
-
-						if(up) {
-							socket.pipe(up);
-							up.pipe(clientSocket);
-						} else {
-							socket.pipe(clientSocket);
-						}
-
-						if(down) {
-							clientSocket.pipe(down);
-							down.pipe(socket);
-						} else {
-							clientSocket.pipe(socket);
-						}
-
-						clientSocket.resume();
-						socket.resume();
 					},
 
 					/**

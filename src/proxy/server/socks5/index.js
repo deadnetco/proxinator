@@ -11,6 +11,7 @@ const EventEmitter = require("events");
 const net = require("net");
 const normalizeAddress = require("../../../utils/ip").normalizeAddress;
 const normalizeFamily = require("../../../utils/ip").normalizeFamily;
+const tunnel = require("../../../utils/tunnel");
 
 /** @type {number} Timeout for SOCKS5 handshake (greeting + auth + request) in ms */
 const HANDSHAKE_TIMEOUT = 30000;
@@ -221,49 +222,23 @@ module.exports = (tcpServerOptional, options) => {
 							 * @param {net.Socket} socket - Target socket to pipe to/from
 							 * @param {stream.Transform} [up] - Optional transform stream for server-to-client data
 							 * @param {stream.Transform} [down] - Optional transform stream for client-to-server data
+							 * @param {Object} [options] - Optional settings
+							 * @param {number} [options.idleTimeout] - Destroy the tunnel after this many ms with no traffic in either direction; emits "timeout" on the server
 							 */
-							bind: (socket, up, down) => {
+							bind: (socket, up, down, options) => {
 								clientSocket.write(buildReply(0x00));
 
-								clientSocket.on("close", () => {
-									socket.end();
-								});
-
-								socket.on("close", () => {
-									clientSocket.end();
-								});
-
-								clientSocket.on("error", (error) => {
-									if (error.code === "ECONNRESET") {
-										socket.end();
-										clientSocket.end();
-
-										return;
+								tunnel(clientSocket, socket, {
+									up: up,
+									down: down,
+									idleTimeout: (options || {}).idleTimeout,
+									onError: (error) => {
+										server._emitError(error, connection);
+									},
+									onTimeout: () => {
+										server._events.emit("timeout", connection);
 									}
-
-									server._emitError(error, connection);
 								});
-
-								socket.on("error", (error) => {
-									server._emitError(error, connection);
-								});
-
-								if (up) {
-									socket.pipe(up);
-									up.pipe(clientSocket);
-								} else {
-									socket.pipe(clientSocket);
-								}
-
-								if (down) {
-									clientSocket.pipe(down);
-									down.pipe(socket);
-								} else {
-									clientSocket.pipe(socket);
-								}
-
-								clientSocket.resume();
-								socket.resume();
 							},
 
 							/**

@@ -6,6 +6,7 @@ const EventEmitter = require("events");
 const http = require("http");
 const normalizeAddress = require("../../../utils/ip").normalizeAddress;
 const normalizeFamily = require("../../../utils/ip").normalizeFamily;
+const tunnel = require("../../../utils/tunnel");
 
 const PROXY_AGENT = "Proxinator";
 
@@ -187,65 +188,27 @@ module.exports = (httpServerOptional) => {
 					 * @param {net.Socket} socket - Target socket to pipe to/from
 					 * @param {stream.Transform} [up] - Optional transform stream for server-to-client data
 					 * @param {stream.Transform} [down] - Optional transform stream for client-to-server data
+					 * @param {Object} [options] - Optional settings
+					 * @param {number} [options.idleTimeout] - Destroy the tunnel after this many ms with no traffic in either direction; emits "timeout" on the server
 					 */
-					bind: (socket, up, down) => {
+					bind: (socket, up, down, options) => {
 						if(connection._head.length > 0) {
 							socket.write(connection._head);
 						}
 
-						socket.allowHalfOpen = true;
-						clientSocket.allowHalfOpen = true;
-
-						clientSocket.on("close", () => {
-							socket.end();
-						});
-
-						socket.on("close", () => {
-							clientSocket.end();
-						});
-
-						socket.on("end", () => {
-							clientSocket.end();
-						});
-
-						clientSocket.on("end", () => {
-							socket.end();
-						});
-
-						// An error means the connection is already broken, so abort with
-						// destroy() on both sides. end() (graceful flush) is only correct
-						// for a clean close (see 'end'/'close' above). ECONNRESET/EPIPE/
-						// write-after-end are benign teardown noise and not reported.
-						const onError = error => {
-							if(error.code !== "ECONNRESET" && error.code !== "EPIPE" && error.code !== "ERR_STREAM_WRITE_AFTER_END") {
-								server._emitError( error, connection);
-							}
-
-							socket.destroy();
-							clientSocket.destroy();
-						};
-
-						clientSocket.on("error", onError);
-						socket.on("error", onError);
-
 						writeResponse(req, clientSocket, 200, "Connection Established");
 
-						if(up) {
-							socket.pipe(up);
-							up.pipe(clientSocket);
-						} else {
-							socket.pipe(clientSocket);
-						}
-
-						if(down) {
-							clientSocket.pipe(down);
-							down.pipe(socket);
-						} else {
-							clientSocket.pipe(socket);
-						}
-
-						clientSocket.resume();
-						socket.resume();
+						tunnel(clientSocket, socket, {
+							up: up,
+							down: down,
+							idleTimeout: (options || {}).idleTimeout,
+							onError: (error) => {
+								server._emitError(error, connection);
+							},
+							onTimeout: () => {
+								server._events.emit("timeout", connection);
+							}
+						});
 					},
 
 					/**

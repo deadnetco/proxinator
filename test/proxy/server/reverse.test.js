@@ -232,6 +232,52 @@ describe("Reverse Proxy Server", () => {
 		});
 	});
 
+	it("should deliver the target's reply after the client half-closes", (done) => {
+		proxy = createReverseServer();
+
+		const targetServer = net.createServer({ allowHalfOpen: true }, (targetSocket) => {
+			targetSocket.resume();
+
+			targetSocket.on("end", () => {
+				setTimeout(() => {
+					targetSocket.end("reply after FIN");
+				}, 20);
+			});
+		});
+
+		proxy.on("connection", (connection) => {
+			const target = net.connect({ port: targetServer.address().port, host: "127.0.0.1" });
+
+			target.on("connect", () => {
+				connection.bind(target);
+			});
+
+			target.on("error", () => {});
+		});
+
+		targetServer.listen(0, () => {
+			proxy.tcp.listen(0, () => {
+				const client = net.connect({ port: proxy.tcp.address().port, host: "127.0.0.1" }, () => {
+					client.end("request");
+				});
+
+				let reply = "";
+
+				client.on("data", (data) => {
+					reply += data;
+				});
+
+				client.on("end", () => {
+					targetServer.close();
+					assert.strictEqual(reply, "reply after FIN");
+					done();
+				});
+
+				client.on("error", done);
+			});
+		});
+	});
+
 	it("should flush buffered head data when binding", (done) => {
 		proxy = createReverseServer();
 		const testData = "raw head data";

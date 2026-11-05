@@ -496,7 +496,30 @@ server.http.listen(8080);
 Available events:
 - `"connection"` — new connection accepted
 - `"close"` — connection socket closed
-- `"error"` — socket error during bind or SNI parsing
+- `"error"` — socket error during bind or SNI parsing (benign teardown errors such as `ECONNRESET` are not reported)
+- `"timeout"` — tunnel closed by `idleTimeout` (see below)
+
+#### Tunnel Lifecycle
+
+`bind(socket, up?, down?, options?)` behaves the same on every server:
+
+- A half-close is forwarded as a half-close: when one side finishes sending (FIN), the other direction stays open, so a target can still reply after reading the client's EOF.
+- Any socket error aborts the tunnel and destroys both sides.
+- Established tunnels have no timeout by default. Pass `idleTimeout` (ms) to close tunnels with no traffic in either direction:
+
+```javascript
+server.on("connection", (connection) => {
+	proxinator.client.reverse(connection.getDestination()).then((socket) => {
+		connection.bind(socket, undefined, undefined, { idleTimeout: 5 * 60 * 1000 });
+	});
+});
+
+server.on("timeout", (connection) => {
+	console.log("Idle tunnel closed:", connection.getRemoteHost());
+});
+```
+
+The same piping is available for custom servers as `proxinator.utils.tunnel(clientSocket, socket, { up, down, idleTimeout, onError, onTimeout })`.
 
 ## How It Works
 

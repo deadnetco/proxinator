@@ -207,6 +207,104 @@ describe("SOCKS5 Proxy Server", () => {
 		});
 	});
 
+	it("should deliver the target's reply after the client half-closes", (done) => {
+		// Regression: the client socket was not half-open, so the client's FIN
+		// closed it and the reply the target sent after reading EOF was lost.
+		proxy = createSocks5Server();
+
+		const targetServer = net.createServer({ allowHalfOpen: true }, (targetSocket) => {
+			let request = "";
+
+			targetSocket.on("data", (data) => {
+				request += data;
+			});
+
+			targetSocket.on("end", () => {
+				setTimeout(() => {
+					targetSocket.end("reply to " + request);
+				}, 20);
+			});
+		});
+		extraServers.push(targetServer);
+
+		proxy.on("connection", (connection) => {
+			const target = net.connect({ port: targetServer.address().port, host: "127.0.0.1" });
+
+			target.on("connect", () => {
+				connection.bind(target);
+			});
+
+			target.on("error", () => {});
+		});
+
+		targetServer.listen(0, () => {
+			proxy.tcp.listen(0, () => {
+				SocksClient.createConnection({
+					command: "connect",
+					proxy: { host: "127.0.0.1", port: proxy.tcp.address().port, type: 5 },
+					destination: { host: "127.0.0.1", port: targetServer.address().port },
+					timeout: 5000
+				}).then((info) => {
+					let reply = "";
+
+					info.socket.on("data", (data) => {
+						reply += data;
+					});
+
+					info.socket.on("end", () => {
+						assert.strictEqual(reply, "reply to request");
+						done();
+					});
+
+					info.socket.end("request");
+				}).catch(done);
+			});
+		});
+	});
+
+	it("should close an idle tunnel and emit timeout when idleTimeout is set", (done) => {
+		proxy = createSocks5Server();
+
+		const targetServer = net.createServer((targetSocket) => {
+			targetSocket.on("error", () => {});
+		});
+		extraServers.push(targetServer);
+
+		let timedOut = null;
+
+		proxy.on("timeout", (connection) => {
+			timedOut = connection;
+		});
+
+		proxy.on("connection", (connection) => {
+			const target = net.connect({ port: targetServer.address().port, host: "127.0.0.1" });
+
+			target.on("connect", () => {
+				connection.bind(target, undefined, undefined, { idleTimeout: 100 });
+			});
+
+			target.on("error", () => {});
+		});
+
+		targetServer.listen(0, () => {
+			proxy.tcp.listen(0, () => {
+				SocksClient.createConnection({
+					command: "connect",
+					proxy: { host: "127.0.0.1", port: proxy.tcp.address().port, type: 5 },
+					destination: { host: "127.0.0.1", port: targetServer.address().port },
+					timeout: 5000
+				}).then((info) => {
+					info.socket.on("error", () => {});
+					info.socket.on("close", () => {
+						assert.ok(timedOut, "server should emit timeout");
+						assert.strictEqual(typeof timedOut.getDestination, "function");
+						done();
+					});
+				}).catch(done);
+			});
+		});
+	});
+
 	it("should send error response to client", (done) => {
 		proxy = createSocks5Server();
 

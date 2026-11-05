@@ -26,6 +26,7 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 - `src/proxy/client/agent/index.js` — Creates an http.Agent that tunnels connections through a proxy chain. Drop-in for http.request/https.request options.agent. Accepts proxy array and optional `{ lookup, family, connect }`. The `connect` option transforms the tunnel target URL for split IP+SNI support
 
 ### Utilities (`src/utils/`)
+- `src/utils/tunnel/index.js` — Shared bind() data path for all servers: pipes both ways, forwards half-close with end() (allowHalfOpen on both sockets), destroys both on error (ECONNRESET/EPIPE/write-after-end not reported), optional `idleTimeout` with `onTimeout`. Servers' `bind(socket, up, down, options)` delegate here and emit "timeout" on idle close
 - `src/utils/sni/index.js` — TLS ClientHello parser (isClientHello, isComplete, parseSNI). Reassembles a ClientHello split across TCP segments / TLS records; `isComplete` tells callers when to stop buffering. Reverse server `waitSNI` buffers up to 64KB waiting for a complete hello
 - `src/utils/dns/index.js` — Factory returning RandomResolver with rate limiting, random server selection, and bogus IP filtering. Accepts optional server list (defaults to built-in list) and options (`bogusRanges`, `bogusIPs`, `maxBogusRetries`). Retries resolve4/resolve6/resolve(A/AAAA) when results contain IPs in bogus ranges (loopback, private, etc.) or known censorship sinkhole IPs (Great Firewall / Russian ISP block pages, `DEFAULT_BOGUS_IPS`). Exports `isBogusIP`, `hasBogusIPs`, `shouldFilterResolve`, `DEFAULT_BOGUS_RANGES`, `DEFAULT_BOGUS_IPS`
 - `src/utils/dns-cache/index.js` — Factory returning cacheable-lookup instance. Accepts optional resolver, defaults to system DNS
@@ -73,11 +74,12 @@ Servers emit events:
 - `connection` — new connection accepted (connection wrapper object)
 - `close` — connection socket closed
 - `error` — socket error during bind or SNI parsing (replaces console.error)
+- `timeout` — tunnel closed by bind's `idleTimeout` option
 
 Each connection object wraps the raw socket and provides:
 - Address helpers (getHost, getPort, getRemoteHost, etc.)
 - Protocol-specific methods (getAuth, getDestination for forward/socks5; waitSNI for reverse)
-- `bind(socket, upTransform?, downTransform?)` for bidirectional piping
+- `bind(socket, upTransform?, downTransform?, { idleTimeout }?)` for bidirectional piping (via `src/utils/tunnel`)
 
 Servers track active connections via `_connections` Set and expose `connectionCount()`.
 

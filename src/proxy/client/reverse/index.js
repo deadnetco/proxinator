@@ -42,12 +42,17 @@ module.exports = (url, options) => {
 
 	const socket = net.connect(connectOptions);
 
-	socket.on("timeout", () => {
+	const onConnectTimeout = () => {
 		socket.destroy(new Error(`Connect timeout after ${CONNECT_TIMEOUT}ms (${url})`));
-	});
+	};
 
+	socket.on("timeout", onConnectTimeout);
+
+	// Drop the connect timeout entirely once connected, so a later idle
+	// timeout (e.g. bind's idleTimeout) is not reported as a connect timeout.
 	socket.on("connect", () => {
 		socket.setTimeout(0);
+		socket.off("timeout", onConnectTimeout);
 	});
 
 	return Promise.resolve(socket);

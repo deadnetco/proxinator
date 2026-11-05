@@ -1,5 +1,5 @@
 /**
- * Utility modules - DNS, SNI parsing, IP handling, and load balancing.
+ * Utility modules - DNS, SNI parsing, IP handling, load balancing and socket tunnelling.
  */
 module.exports = {
 	sni: require("./sni"),
@@ -8,5 +8,6 @@ module.exports = {
 	dnsLookup: require("./dns-lookup"),
 	balancer: require("./balancer"),
 	ip: require("./ip"),
-	obfuscator: require("./obfuscator")
+	obfuscator: require("./obfuscator"),
+	tunnel: require("./tunnel")
 };
