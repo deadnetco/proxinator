@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
 	<title id="title">Proxinator</title>
-	<desc id="desc">Programmable proxy routing for Node.js: a client connects to proxinator, which routes each connection through HTTP CONNECT, SOCKS5 or SNI to its target.</desc>
+	<desc id="desc">Programmable proxy routing for Node.js: connections arriving over HTTP CONNECT, SOCKS5 or SNI go through your route() code, which sends each one direct, through a SOCKS5 upstream or through a proxy chain.</desc>
 
 	<defs>
 		<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -39,7 +39,7 @@
 		.wire { fill: none; stroke-width: 2; stroke-opacity: 0.25; }
 		.flow { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 22; animation: flow 1.4s linear infinite; }
 		.flow.slow { animation-duration: 2s; }
-		.hub { animation: pulse 2.8s ease-in-out infinite; transform-origin: 860px 200px; }
+		.hub { animation: pulse 2.8s ease-in-out infinite; transform-origin: 884px 200px; }
 
 		@keyframes flow { to { stroke-dashoffset: -48; } }
 		@keyframes pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
@@ -79,49 +79,69 @@
 		</text>
 
 		<!-- Diagram: wires -->
-		<path class="wire" stroke="#e6edf7" d="M696 200 H814"/>
-		<path class="wire" stroke="#22d3ee" d="M904 200 C 940 200, 940 110, 976 110 H1124"/>
-		<path class="wire" stroke="#a78bfa" d="M904 200 H1124"/>
-		<path class="wire" stroke="#f472b6" d="M904 200 C 940 200, 940 290, 976 290 H1124"/>
+		<path class="wire" stroke="#22d3ee" d="M648 110 H664"/>
+		<path class="wire" stroke="#22d3ee" d="M748 110 C 800 110, 800 200, 848 200"/>
+		<path class="wire" stroke="#a78bfa" d="M648 200 H664"/>
+		<path class="wire" stroke="#a78bfa" d="M748 200 C 800 200, 800 200, 848 200"/>
+		<path class="wire" stroke="#f472b6" d="M648 290 H664"/>
+		<path class="wire" stroke="#f472b6" d="M748 290 C 800 290, 800 200, 848 200"/>
+		<path class="wire" stroke="#fbbf24" d="M920 200 C 940 200, 940 110, 964 110"/>
+		<path class="wire" stroke="#fbbf24" d="M1060 110 H1132"/>
+		<path class="wire" stroke="#34d399" d="M920 200 H964"/>
+		<path class="wire" stroke="#34d399" d="M1060 200 H1132"/>
+		<path class="wire" stroke="#60a5fa" d="M920 200 C 940 200, 940 290, 964 290"/>
+		<path class="wire" stroke="#60a5fa" d="M1060 290 H1132"/>
 
 		<!-- Diagram: traffic -->
-		<path class="flow slow" stroke="#e6edf7" d="M696 200 H814"/>
-		<path class="flow" stroke="#22d3ee" d="M904 200 C 940 200, 940 110, 976 110 H1124"/>
-		<path class="flow" stroke="#a78bfa" d="M904 200 H1124" style="animation-delay: -0.45s"/>
-		<path class="flow" stroke="#f472b6" d="M904 200 C 940 200, 940 290, 976 290 H1124" style="animation-delay: -0.9s"/>
+		<path class="flow" stroke="#22d3ee" d="M748 110 C 800 110, 800 200, 848 200" style="animation-delay: -0.00s"/>
+		<path class="flow" stroke="#a78bfa" d="M748 200 C 800 200, 800 200, 848 200" style="animation-delay: -0.45s"/>
+		<path class="flow" stroke="#f472b6" d="M748 290 C 800 290, 800 200, 848 200" style="animation-delay: -0.90s"/>
+		<path class="flow" stroke="#fbbf24" d="M920 200 C 940 200, 940 110, 964 110" style="animation-delay: -0.20s"/>
+		<path class="flow" stroke="#fbbf24" d="M1060 110 H1132" style="animation-delay: -0.60s"/>
+		<path class="flow" stroke="#34d399" d="M920 200 H964" style="animation-delay: -0.65s"/>
+		<path class="flow" stroke="#34d399" d="M1060 200 H1132" style="animation-delay: -1.05s"/>
+		<path class="flow" stroke="#60a5fa" d="M920 200 C 940 200, 940 290, 964 290" style="animation-delay: -1.10s"/>
+		<path class="flow" stroke="#60a5fa" d="M1060 290 H1132" style="animation-delay: -1.50s"/>
 
-		<!-- Client -->
-		<circle cx="670" cy="200" r="26" fill="#0f172a" stroke="#e6edf7" stroke-opacity="0.6" stroke-width="2"/>
-		<circle cx="670" cy="200" r="7" fill="#e6edf7"/>
-		<text x="670" y="250" class="small">client</text>
+		<!-- Sources -->
+		<circle cx="636" cy="110" r="12" fill="#0f172a" stroke="#22d3ee" stroke-width="2"/>
+		<circle cx="636" cy="110" r="4" fill="#22d3ee"/>
+		<circle cx="636" cy="200" r="12" fill="#0f172a" stroke="#a78bfa" stroke-width="2"/>
+		<circle cx="636" cy="200" r="4" fill="#a78bfa"/>
+		<circle cx="636" cy="290" r="12" fill="#0f172a" stroke="#f472b6" stroke-width="2"/>
+		<circle cx="636" cy="290" r="4" fill="#f472b6"/>
+		<rect x="664" y="94" width="84" height="32" rx="8" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+		<text x="706" y="115" class="label">connect</text>
+		<rect x="664" y="184" width="84" height="32" rx="8" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5"/>
+		<text x="706" y="205" class="label">socks5</text>
+		<rect x="664" y="274" width="84" height="32" rx="8" fill="#0f172a" stroke="#f472b6" stroke-width="1.5"/>
+		<text x="706" y="295" class="label">sni</text>
 
 		<!-- Hub -->
-		<circle cx="860" cy="200" r="78" fill="url(#glow)" class="hub"/>
-		<polygon points="860,152 902,176 902,224 860,248 818,224 818,176" fill="#111833" stroke="url(#word)" stroke-width="3"/>
-		<text x="860" y="206" class="label" fill="#e6edf7">route()</text>
-		<text x="860" y="276" class="small">your code</text>
+		<circle cx="884" cy="200" r="74" fill="url(#glow)" class="hub"/>
+		<polygon points="884,158 920,179 920,221 884,242 848,221 848,179" fill="#111833" stroke="url(#word)" stroke-width="3"/>
+		<text x="884" y="205" class="label" style="font-size: 13px">route()</text>
+		<text x="884" y="268" class="small">your code</text>
 
-		<!-- Route nodes -->
-		<rect x="972" y="94" width="96" height="32" rx="8" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
-		<text x="1020" y="115" class="label">http</text>
-
-		<rect x="972" y="184" width="96" height="32" rx="8" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5"/>
-		<text x="1020" y="205" class="label">socks5</text>
-
-		<rect x="972" y="274" width="96" height="32" rx="8" fill="#0f172a" stroke="#f472b6" stroke-width="1.5"/>
-		<text x="1020" y="295" class="label">sni</text>
+		<!-- Upstreams -->
+		<rect x="964" y="94" width="96" height="32" rx="8" fill="#0f172a" stroke="#fbbf24" stroke-width="1.5"/>
+		<text x="1012" y="115" class="label">direct</text>
+		<rect x="964" y="184" width="96" height="32" rx="8" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+		<text x="1012" y="205" class="label">socks5</text>
+		<rect x="964" y="274" width="96" height="32" rx="8" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5"/>
+		<text x="1012" y="295" class="label">chain</text>
 
 		<!-- Targets -->
-		<g fill="#0f172a" stroke-width="2">
-			<circle cx="1136" cy="110" r="14" stroke="#22d3ee"/>
-			<circle cx="1136" cy="200" r="14" stroke="#a78bfa"/>
-			<circle cx="1136" cy="290" r="14" stroke="#f472b6"/>
-		</g>
-		<g fill="none" stroke-width="1.2" stroke-opacity="0.8">
-			<ellipse cx="1136" cy="110" rx="6" ry="14" stroke="#22d3ee"/>
-			<ellipse cx="1136" cy="200" rx="6" ry="14" stroke="#a78bfa"/>
-			<ellipse cx="1136" cy="290" rx="6" ry="14" stroke="#f472b6"/>
-		</g>
+		<circle cx="1146" cy="110" r="14" fill="#0f172a" stroke="#fbbf24" stroke-width="2"/>
+		<ellipse cx="1146" cy="110" rx="6" ry="14" fill="none" stroke="#fbbf24" stroke-width="1.2" stroke-opacity="0.8"/>
+		<circle cx="1146" cy="200" r="14" fill="#0f172a" stroke="#34d399" stroke-width="2"/>
+		<ellipse cx="1146" cy="200" rx="6" ry="14" fill="none" stroke="#34d399" stroke-width="1.2" stroke-opacity="0.8"/>
+		<circle cx="1146" cy="290" r="14" fill="#0f172a" stroke="#60a5fa" stroke-width="2"/>
+		<ellipse cx="1146" cy="290" rx="6" ry="14" fill="none" stroke="#60a5fa" stroke-width="1.2" stroke-opacity="0.8"/>
+
+		<!-- Column captions -->
+		<text x="692" y="346" class="small">inbound</text>
+		<text x="1012" y="346" class="small">upstream</text>
 	</g>
 
 	<rect x="0.5" y="0.5" width="1199" height="399" rx="24" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
