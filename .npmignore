@@ -11,3 +11,4 @@ eslint.config.js
 tsconfig.json
 CLAUDE.md
 .claude
+assets/

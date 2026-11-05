@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+	<title id="title">Proxinator</title>
+	<desc id="desc">Programmable proxy routing for Node.js: a client connects to proxinator, which routes each connection through HTTP CONNECT, SOCKS5 or SNI to its target.</desc>
+
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#0a0f1f"/>
+			<stop offset="1" stop-color="#151d3b"/>
+		</linearGradient>
+
+		<linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+			<stop offset="0" stop-color="#22d3ee"/>
+			<stop offset="0.55" stop-color="#a78bfa"/>
+			<stop offset="1" stop-color="#f472b6"/>
+		</linearGradient>
+
+		<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+			<stop offset="0" stop-color="#a78bfa" stop-opacity="0.45"/>
+			<stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+		</radialGradient>
+
+		<pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+			<path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity="0.035"/>
+		</pattern>
+
+		<clipPath id="card">
+			<rect width="1200" height="400" rx="24"/>
+		</clipPath>
+	</defs>
+
+	<style>
+		.wordmark { font: 800 84px "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif; letter-spacing: -2px; }
+		.tagline { font: 500 25px "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif; fill: #b6c2dc; }
+		.chip { font: 600 15px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+		.code { font: 500 17px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+		.label { font: 600 14px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #e6edf7; text-anchor: middle; }
+		.small { font: 500 13px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #8b9bb8; text-anchor: middle; }
+
+		.wire { fill: none; stroke-width: 2; stroke-opacity: 0.25; }
+		.flow { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 22; animation: flow 1.4s linear infinite; }
+		.flow.slow { animation-duration: 2s; }
+		.hub { animation: pulse 2.8s ease-in-out infinite; transform-origin: 860px 200px; }
+
+		@keyframes flow { to { stroke-dashoffset: -48; } }
+		@keyframes pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+
+		@media (prefers-reduced-motion: reduce) {
+			.flow, .hub { animation: none; }
+		}
+	</style>
+
+	<g clip-path="url(#card)">
+		<rect width="1200" height="400" fill="url(#bg)"/>
+		<rect width="1200" height="400" fill="url(#grid)"/>
+
+		<!-- Wordmark -->
+		<text x="64" y="158" class="wordmark" fill="url(#word)">proxinator</text>
+		<text x="66" y="204" class="tagline">Programmable proxy routing for Node.js</text>
+
+		<!-- Protocol chips -->
+		<g class="chip">
+			<rect x="66" y="232" width="142" height="34" rx="17" fill="#22d3ee" fill-opacity="0.12" stroke="#22d3ee" stroke-opacity="0.5"/>
+			<text x="137" y="254" fill="#67e8f9" text-anchor="middle">HTTP CONNECT</text>
+
+			<rect x="220" y="232" width="86" height="34" rx="17" fill="#a78bfa" fill-opacity="0.12" stroke="#a78bfa" stroke-opacity="0.5"/>
+			<text x="263" y="254" fill="#c4b5fd" text-anchor="middle">SOCKS5</text>
+
+			<rect x="318" y="232" width="64" height="34" rx="17" fill="#f472b6" fill-opacity="0.12" stroke="#f472b6" stroke-opacity="0.5"/>
+			<text x="350" y="254" fill="#f9a8d4" text-anchor="middle">SNI</text>
+
+			<rect x="394" y="232" width="84" height="34" rx="17" fill="#fbbf24" fill-opacity="0.12" stroke="#fbbf24" stroke-opacity="0.5"/>
+			<text x="436" y="254" fill="#fcd34d" text-anchor="middle">chains</text>
+		</g>
+
+		<!-- Code line -->
+		<rect x="66" y="298" width="502" height="44" rx="10" fill="#000000" fill-opacity="0.3" stroke="#ffffff" stroke-opacity="0.08"/>
+		<text x="84" y="326" class="code">
+			<tspan fill="#8b9bb8">server.</tspan><tspan fill="#67e8f9">on</tspan><tspan fill="#8b9bb8">(</tspan><tspan fill="#fcd34d">"connection"</tspan><tspan fill="#8b9bb8">, c =&gt; </tspan><tspan fill="#c4b5fd">route</tspan><tspan fill="#8b9bb8">(c))</tspan>
+		</text>
+
+		<!-- Diagram: wires -->
+		<path class="wire" stroke="#e6edf7" d="M696 200 H814"/>
+		<path class="wire" stroke="#22d3ee" d="M904 200 C 940 200, 940 110, 976 110 H1124"/>
+		<path class="wire" stroke="#a78bfa" d="M904 200 H1124"/>
+		<path class="wire" stroke="#f472b6" d="M904 200 C 940 200, 940 290, 976 290 H1124"/>
+
+		<!-- Diagram: traffic -->
+		<path class="flow slow" stroke="#e6edf7" d="M696 200 H814"/>
+		<path class="flow" stroke="#22d3ee" d="M904 200 C 940 200, 940 110, 976 110 H1124"/>
+		<path class="flow" stroke="#a78bfa" d="M904 200 H1124" style="animation-delay: -0.45s"/>
+		<path class="flow" stroke="#f472b6" d="M904 200 C 940 200, 940 290, 976 290 H1124" style="animation-delay: -0.9s"/>
+
+		<!-- Client -->
+		<circle cx="670" cy="200" r="26" fill="#0f172a" stroke="#e6edf7" stroke-opacity="0.6" stroke-width="2"/>
+		<circle cx="670" cy="200" r="7" fill="#e6edf7"/>
+		<text x="670" y="250" class="small">client</text>
+
+		<!-- Hub -->
+		<circle cx="860" cy="200" r="78" fill="url(#glow)" class="hub"/>
+		<polygon points="860,152 902,176 902,224 860,248 818,224 818,176" fill="#111833" stroke="url(#word)" stroke-width="3"/>
+		<text x="860" y="206" class="label" fill="#e6edf7">route()</text>
+		<text x="860" y="276" class="small">your code</text>
+
+		<!-- Route nodes -->
+		<rect x="972" y="94" width="96" height="32" rx="8" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+		<text x="1020" y="115" class="label">http</text>
+
+		<rect x="972" y="184" width="96" height="32" rx="8" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5"/>
+		<text x="1020" y="205" class="label">socks5</text>
+
+		<rect x="972" y="274" width="96" height="32" rx="8" fill="#0f172a" stroke="#f472b6" stroke-width="1.5"/>
+		<text x="1020" y="295" class="label">sni</text>
+
+		<!-- Targets -->
+		<g fill="#0f172a" stroke-width="2">
+			<circle cx="1136" cy="110" r="14" stroke="#22d3ee"/>
+			<circle cx="1136" cy="200" r="14" stroke="#a78bfa"/>
+			<circle cx="1136" cy="290" r="14" stroke="#f472b6"/>
+		</g>
+		<g fill="none" stroke-width="1.2" stroke-opacity="0.8">
+			<ellipse cx="1136" cy="110" rx="6" ry="14" stroke="#22d3ee"/>
+			<ellipse cx="1136" cy="200" rx="6" ry="14" stroke="#a78bfa"/>
+			<ellipse cx="1136" cy="290" rx="6" ry="14" stroke="#f472b6"/>
+		</g>
+	</g>
+
+	<rect x="0.5" y="0.5" width="1199" height="399" rx="24" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+</svg>

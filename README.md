@@ -1,4 +1,6 @@
-# Proxinator
+<h1 align="center">
+	<img src="assets/banner.svg" alt="Proxinator — programmable proxy routing for Node.js" width="100%">
+</h1>
 
 [![npm version](https://img.shields.io/npm/v/proxinator.svg)](https://www.npmjs.com/package/proxinator)
 [![license](https://img.shields.io/npm/l/proxinator.svg)](https://github.com/deadnetco/proxinator/blob/main/LICENSE)
