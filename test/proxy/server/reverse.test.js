@@ -165,6 +165,73 @@ describe("Reverse Proxy Server", () => {
 		});
 	});
 
+	it("should extract SNI when ClientHello arrives in several TCP segments", (done) => {
+		proxy = createReverseServer();
+
+		proxy.on("connection", (connection) => {
+			connection.waitSNI().then((hostname) => {
+				assert.strictEqual(hostname, "split.example.com");
+				connection.socket.destroy();
+				done();
+			}).catch(done);
+		});
+
+		const capture = net.createServer((socket) => {
+			socket.once("data", (hello) => {
+				socket.destroy();
+				capture.close();
+
+				const port = proxy.tcp.address().port;
+				const client = net.connect({ port: port, host: "127.0.0.1" }, () => {
+					client.setNoDelay(true);
+					client.write(hello.subarray(0, 10));
+
+					setTimeout(() => {
+						client.write(hello.subarray(10, 200));
+					}, 30);
+
+					setTimeout(() => {
+						client.write(hello.subarray(200));
+					}, 60);
+				});
+				client.on("error", () => {});
+			});
+		});
+
+		proxy.tcp.listen(0, () => {
+			capture.listen(0, () => {
+				const socket = tls.connect({
+					port: capture.address().port,
+					host: "127.0.0.1",
+					servername: "split.example.com",
+					rejectUnauthorized: false
+				});
+				socket.on("error", () => {});
+			});
+		});
+	});
+
+	it("should reject waitSNI when buffered data exceeds the ClientHello limit", (done) => {
+		proxy = createReverseServer();
+
+		proxy.on("connection", (connection) => {
+			connection.waitSNI().then((hostname) => {
+				done(new Error("waitSNI resolved unexpectedly with " + hostname));
+			}).catch((error) => {
+				assert.ok(/exceeds/.test(error.message));
+				done();
+			});
+		});
+
+		proxy.tcp.listen(0, () => {
+			const port = proxy.tcp.address().port;
+			const client = net.connect({ port: port, host: "127.0.0.1" }, () => {
+				client.write(Buffer.alloc(70000, 0x41));
+			});
+			client.on("error", () => {});
+		});
+	});
+
 	it("should flush buffered head data when binding", (done) => {
 		proxy = createReverseServer();
 		const testData = "raw head data";

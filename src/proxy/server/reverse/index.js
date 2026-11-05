@@ -10,6 +10,9 @@ const sni = require("../../../utils/sni");
 
 /** @type {number} Timeout waiting for TLS ClientHello in ms */
 const SNI_TIMEOUT = 10000;
+
+/** @type {number} Max bytes buffered while waiting for a complete ClientHello */
+const MAX_CLIENT_HELLO_SIZE = 65536;
 const normalizeAddress = require("../../../utils/ip").normalizeAddress;
 const normalizeFamily = require("../../../utils/ip").normalizeFamily;
 
@@ -74,7 +77,8 @@ module.exports = (tcpServerOptional) => {
 
 					/**
 					 * Wait for TLS ClientHello and extract SNI hostname.
-					 * Resumes the socket, buffers data until a valid ClientHello is received.
+					 * Resumes the socket, buffers data until a complete ClientHello is received
+					 * (it may span several TCP segments and TLS records).
 					 * @returns {Promise<string|null>} SNI hostname or null
 					 */
 					waitSNI: () => {
@@ -100,7 +104,15 @@ module.exports = (tcpServerOptional) => {
 								connection._head = Buffer.concat([connection._head, data]);
 
 								try {
-									if(!sni.isClientHello(connection._head)) {
+									const ready = sni.isClientHello(connection._head) && sni.isComplete(connection._head);
+
+									if(!ready) {
+										if(connection._head.length > MAX_CLIENT_HELLO_SIZE) {
+											cleanup();
+											clientSocket.destroy();
+											reject(new Error("ClientHello exceeds " + MAX_CLIENT_HELLO_SIZE + " bytes"));
+										}
+
 										return;
 									}
 

@@ -289,9 +289,15 @@ const sni = require("proxinator").utils.sni;
 // Check if buffer is a TLS ClientHello
 sni.isClientHello(buffer); // true/false
 
+// Check whether the whole ClientHello has arrived (it can span several TCP
+// segments - modern post-quantum hellos are larger than one MSS)
+sni.isComplete(buffer); // false while more data is needed
+
 // Extract SNI hostname
 sni.parseSNI(buffer); // "example.com" or null
 ```
+
+`connection.waitSNI()` on the reverse server already buffers until the ClientHello is complete.
 
 #### Load Balancer
 

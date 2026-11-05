@@ -25,7 +25,7 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 - `src/proxy/client/agent/index.js` — Creates an http.Agent that tunnels connections through a proxy chain. Drop-in for http.request/https.request options.agent. Accepts proxy array and optional `{ lookup, family, connect }`. The `connect` option transforms the tunnel target URL for split IP+SNI support
 
 ### Utilities (`src/utils/`)
-- `src/utils/sni/index.js` — TLS ClientHello parser (isClientHello, parseSNI)
+- `src/utils/sni/index.js` — TLS ClientHello parser (isClientHello, isComplete, parseSNI). Reassembles a ClientHello split across TCP segments / TLS records; `isComplete` tells callers when to stop buffering. Reverse server `waitSNI` buffers up to 64KB waiting for a complete hello
 - `src/utils/dns/index.js` — Factory returning RandomResolver with rate limiting, random server selection, and bogus IP filtering. Accepts optional server list (defaults to built-in list) and options (`bogusRanges`, `bogusIPs`, `maxBogusRetries`). Retries resolve4/resolve6/resolve(A/AAAA) when results contain IPs in bogus ranges (loopback, private, etc.) or known censorship sinkhole IPs (Great Firewall / Russian ISP block pages, `DEFAULT_BOGUS_IPS`). Exports `isBogusIP`, `hasBogusIPs`, `shouldFilterResolve`, `DEFAULT_BOGUS_RANGES`, `DEFAULT_BOGUS_IPS`
 - `src/utils/dns-cache/index.js` — Factory returning cacheable-lookup instance. Accepts optional resolver, defaults to system DNS
 - `src/utils/dns-lookup/index.js` — Convenience factory chaining dns + dnsCache. Accepts optional `(servers, options)` and forwards options to dns factory. Returns a lookup function ready for client options
@@ -42,6 +42,11 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 
 ### Dev Tools (`dev/`)
 - `dev/dns-checker.js` — Validates DNS servers and generates `data/valid-dns-servers.json`
+
+## Testing
+
+- `test/fixtures/tls/` — self-signed cert (example.com, *.example.com, localhost; valid to 2126) for real TLS tests
+- `test/helpers/fragmenter` — Duplex splitting writes into small delayed TCP segments; pass to `tls.connect({ socket })` to reproduce a ClientHello split by a real network (loopback never splits it)
 
 ## Key Patterns
 
