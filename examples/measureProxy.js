@@ -22,7 +22,7 @@ server.on("connection", (connection) => {
 	});
 
 	proxinator.client.reverse(destination).then(socket => {
-		connection.bind(socket, meter);
+		connection.bind(socket, { up: meter });
 	});
 });
 

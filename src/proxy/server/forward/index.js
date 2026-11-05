@@ -7,6 +7,7 @@ const http = require("http");
 const normalizeAddress = require("../../../utils/ip").normalizeAddress;
 const normalizeFamily = require("../../../utils/ip").normalizeFamily;
 const tunnel = require("../../../utils/tunnel");
+const args = require("../arguments");
 
 const PROXY_AGENT = "Proxinator";
 
@@ -53,11 +54,15 @@ const writeResponse = (_req, socket, statusCode, statusMessage, headers) => {
 
 /**
  * Create a forward proxy server
- * @param {http.Server} [httpServerOptional] - Existing HTTP server to wrap (creates new if omitted). Plain (non-CONNECT) requests get 405 unless this server already has a "request" listener
+ * @param {http.Server|Object} [httpServerOptional] - Existing HTTP server to wrap (creates new if omitted), or options. Plain (non-CONNECT) requests get 405 unless this server already has a "request" listener
+ * @param {Object} [options] - Optional settings (may also be passed as the only argument)
+ * @param {number} [options.idleTimeout] - Default idle timeout (ms) for every bind(); bind's own idleTimeout overrides it
  * @returns {object} Server with `on("connection", handler)` and `http` property
  */
-module.exports = (httpServerOptional) => {
-	const httpServer = httpServerOptional || http.createServer();
+module.exports = (httpServerOptional, options) => {
+	const normalized = args.server(httpServerOptional, options);
+	const opts = normalized.options;
+	const httpServer = normalized.server || http.createServer();
 
 	const server = {
 		http: httpServer,
@@ -204,12 +209,18 @@ module.exports = (httpServerOptional) => {
 					 * Bind client socket to a target socket, piping data both ways.
 					 * Sends "200 Connection Established" to client before piping.
 					 * @param {net.Socket} socket - Target socket to pipe to/from
-					 * @param {stream.Transform} [up] - Optional transform stream for server-to-client data
-					 * @param {stream.Transform} [down] - Optional transform stream for client-to-server data
-					 * @param {Object} [options] - Optional settings
-					 * @param {number} [options.idleTimeout] - Destroy the tunnel after this many ms with no traffic in either direction; emits "timeout" on the server
+					 * Call as bind(socket, { up, down, idleTimeout }); the positional
+					 * bind(socket, up, down, options) form is still accepted.
+					 * @param {Object|stream.Transform} [upOrOptions] - Options, or the server-to-client transform (positional form)
+					 * @param {stream.Transform} [upOrOptions.up] - Optional transform stream for server-to-client data
+					 * @param {stream.Transform} [upOrOptions.down] - Optional transform stream for client-to-server data
+					 * @param {number} [upOrOptions.idleTimeout] - Destroy the tunnel after this many ms with no traffic in either direction; emits "timeout" on the server. Defaults to the server's idleTimeout
+					 * @param {stream.Transform} [down] - Positional form only: client-to-server transform
+					 * @param {Object} [options] - Positional form only: { idleTimeout }
 					 */
-					bind: (socket, up, down, options) => {
+					bind: (socket, upOrOptions, down, options) => {
+						const bindOptions = args.bind(upOrOptions, down, options, opts);
+
 						if(connection._head.length > 0) {
 							socket.write(connection._head);
 						}
@@ -217,9 +228,9 @@ module.exports = (httpServerOptional) => {
 						writeResponse(req, clientSocket, 200, "Connection Established");
 
 						tunnel(clientSocket, socket, {
-							up: up,
-							down: down,
-							idleTimeout: (options || {}).idleTimeout,
+							up: bindOptions.up,
+							down: bindOptions.down,
+							idleTimeout: bindOptions.idleTimeout,
 							onError: (error) => {
 								server._emitError(error, connection);
 							},

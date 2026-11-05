@@ -12,6 +12,7 @@ const net = require("net");
 const normalizeAddress = require("../../../utils/ip").normalizeAddress;
 const normalizeFamily = require("../../../utils/ip").normalizeFamily;
 const tunnel = require("../../../utils/tunnel");
+const args = require("../arguments");
 
 /** @type {number} Timeout for SOCKS5 handshake (greeting + auth + request) in ms */
 const HANDSHAKE_TIMEOUT = 30000;
@@ -132,14 +133,16 @@ const parseAuth = (data) => {
 
 /**
  * Create a SOCKS5 proxy server
- * @param {net.Server} [tcpServerOptional] - Existing TCP server to wrap (creates new if omitted)
- * @param {Object} [options] - Optional settings
+ * @param {net.Server|Object} [tcpServerOptional] - Existing TCP server to wrap (creates new if omitted), or options
+ * @param {Object} [options] - Optional settings (may also be passed as the only argument)
+ * @param {number} [options.idleTimeout] - Default idle timeout (ms) for every bind(); bind's own idleTimeout overrides it
  * @param {Function} [options.authenticate] - Auth validator: ({username, password, remoteAddress, remotePort, localAddress, localPort}) => Promise<boolean>|boolean. Called for every connection. Credentials are undefined when client uses no-auth. When omitted, accepts all connections.
  * @returns {object} Server with `on("connection", handler)` and `tcp` property
  */
 module.exports = (tcpServerOptional, options) => {
-	const opts = options || {};
-	const tcpServer = tcpServerOptional || net.createServer({
+	const normalized = args.server(tcpServerOptional, options);
+	const opts = normalized.options;
+	const tcpServer = normalized.server || net.createServer({
 		pauseOnConnect: true
 	});
 
@@ -220,18 +223,24 @@ module.exports = (tcpServerOptional, options) => {
 							/**
 							 * Send SOCKS5 success reply and pipe data both ways
 							 * @param {net.Socket} socket - Target socket to pipe to/from
-							 * @param {stream.Transform} [up] - Optional transform stream for server-to-client data
-							 * @param {stream.Transform} [down] - Optional transform stream for client-to-server data
-							 * @param {Object} [options] - Optional settings
-							 * @param {number} [options.idleTimeout] - Destroy the tunnel after this many ms with no traffic in either direction; emits "timeout" on the server
+							 * Call as bind(socket, { up, down, idleTimeout }); the positional
+							 * bind(socket, up, down, options) form is still accepted.
+							 * @param {Object|stream.Transform} [upOrOptions] - Options, or the server-to-client transform (positional form)
+							 * @param {stream.Transform} [upOrOptions.up] - Optional transform stream for server-to-client data
+							 * @param {stream.Transform} [upOrOptions.down] - Optional transform stream for client-to-server data
+							 * @param {number} [upOrOptions.idleTimeout] - Destroy the tunnel after this many ms with no traffic in either direction; emits "timeout" on the server. Defaults to the server's idleTimeout
+							 * @param {stream.Transform} [down] - Positional form only: client-to-server transform
+							 * @param {Object} [options] - Positional form only: { idleTimeout }
 							 */
-							bind: (socket, up, down, options) => {
+							bind: (socket, upOrOptions, down, options) => {
+								const bindOptions = args.bind(upOrOptions, down, options, opts);
+
 								clientSocket.write(buildReply(0x00));
 
 								tunnel(clientSocket, socket, {
-									up: up,
-									down: down,
-									idleTimeout: (options || {}).idleTimeout,
+									up: bindOptions.up,
+									down: bindOptions.down,
+									idleTimeout: bindOptions.idleTimeout,
 									onError: (error) => {
 										server._emitError(error, connection);
 									},

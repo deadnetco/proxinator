@@ -347,7 +347,7 @@ server.on("connection", (connection) => {
 
 	proxinator.client.reverse(destination).then((socket) => {
 		// Pass as up transform to measure server-to-client traffic
-		connection.bind(socket, meter);
+		connection.bind(socket, { up: meter });
 	});
 });
 
@@ -380,7 +380,7 @@ server.on("connection", (connection) => {
 
 	proxinator.client.reverse(destination).then((socket) => {
 		// Pass as the up transform to throttle the download direction
-		connection.bind(socket, throttle);
+		connection.bind(socket, { up: throttle });
 	});
 });
 
@@ -505,22 +505,30 @@ Available events:
 
 #### Tunnel Lifecycle
 
-`bind(socket, up?, down?, options?)` behaves the same on every server:
+`bind(socket, { up?, down?, idleTimeout? })` behaves the same on every server (`up` transforms target-to-client data, `down` client-to-target; the older positional `bind(socket, up, down, options)` still works):
 
 - A half-close is forwarded as a half-close: when one side finishes sending (FIN), the other direction stays open, so a target can still reply after reading the client's EOF.
 - Any socket error aborts the tunnel and destroys both sides.
-- Established tunnels have no timeout by default. Pass `idleTimeout` (ms) to close tunnels with no traffic in either direction:
+- Established tunnels have no timeout by default. Pass `idleTimeout` (ms) to close tunnels with no traffic in either direction, per tunnel in `bind()` or as a default for every tunnel in the server factory:
 
 ```javascript
 server.on("connection", (connection) => {
 	proxinator.client.reverse(connection.getDestination()).then((socket) => {
-		connection.bind(socket, undefined, undefined, { idleTimeout: 5 * 60 * 1000 });
+		connection.bind(socket, { idleTimeout: 5 * 60 * 1000 });
 	});
 });
 
 server.on("timeout", (connection) => {
 	console.log("Idle tunnel closed:", connection.getRemoteHost());
 });
+```
+
+Server factories share one signature, `(server?, options?)`, where either argument can be left out:
+
+```javascript
+proxinator.server.forward({ idleTimeout: 60000 }); // options only
+proxinator.server.socks5(existingTcpServer, { authenticate, idleTimeout: 60000 });
+proxinator.server.reverse(); // defaults
 ```
 
 The same piping is available for custom servers as `proxinator.utils.tunnel(clientSocket, socket, { up, down, idleTimeout, onError, onTimeout })`.
