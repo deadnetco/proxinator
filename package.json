@@ -20,7 +20,7 @@
   "dependencies": {
     "cacheable-lookup": "^6",
     "ipaddr.js": "^2.3.0",
-    "queue-promised": "^0.0.30",
+    "queue-promised": "^0.0.31",
     "socks": "^2.8.7"
   },
   "devDependencies": {

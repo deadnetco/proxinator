@@ -1172,11 +1172,6 @@ lodash.merge@^4.6.2:
   resolved "https://registry.yarnpkg.com/lodash.merge/-/lodash.merge-4.6.2.tgz#558aa53b43b661e1925a0afdfa36a9a1085fe57a"
   integrity sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==
 
-lodash@^4.17.15:
-  version "4.18.1"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.18.1.tgz#ff2b66c1f6326d59513de2407bf881439812771c"
-  integrity sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==
-
 log-symbols@^4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/log-symbols/-/log-symbols-4.1.0.tgz#3fbdbb95b4683ac9fc785111e792e558d4abd503"
@@ -1445,13 +1440,10 @@ punycode@^2.1.0:
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.3.1.tgz#027422e2faec0b25e1549c3e1bd8309b9133b6e5"
   integrity sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==
 
-queue-promised@^0.0.30:
-  version "0.0.30"
-  resolved "https://registry.yarnpkg.com/queue-promised/-/queue-promised-0.0.30.tgz#9010a273a5c4fd58e7e587f4f438defc58392f51"
-  integrity sha512-X9b/M814DArTzVh1z5Glun0z8oosQAUKvo8Omz4O9UVPwGpaY4/+2TtUDaOXui7HjmFFi5yx7zVB2qnKhHMD7A==
-  dependencies:
-    lodash "^4.17.15"
-    uuid "^3.3.2"
+queue-promised@^0.0.31:
+  version "0.0.31"
+  resolved "https://registry.yarnpkg.com/queue-promised/-/queue-promised-0.0.31.tgz#a2b35c934a55472982515b2822015cbce493a894"
+  integrity sha512-unSDvFWoNLZ6fePrYt5hER5WkUtWPDGJfsgmA+2zDScw412vCZoprDsn6Y1S4LHUf01r4Rc9773ezEbaB+v/aA==
 
 randombytes@^2.1.0:
   version "2.1.0"
@@ -1702,11 +1694,6 @@ uri-js@^4.2.2:
   integrity sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==
   dependencies:
     punycode "^2.1.0"
-
-uuid@^3.3.2:
-  version "3.4.0"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.4.0.tgz#b23e4358afa8a202fe7a100af1f5f883f02007ee"
-  integrity sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==
 
 uuid@^8.3.2:
   version "8.3.2"
