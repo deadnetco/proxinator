@@ -40,7 +40,7 @@ proxy.http.listen(8080);
 
 #### Forward Proxy Server
 
-Accept HTTP CONNECT requests and tunnel connections:
+A TCP tunnel server that uses HTTP CONNECT for setup:
 
 CONNECT only: plain proxy requests (`GET http://...`) are refused with `405 Method Not Allowed`, so nothing is relayed unencrypted by accident. If you pass your own `http.Server` that already has a request handler, plain requests are left to that handler.
 
@@ -126,7 +126,7 @@ const proxy = proxinator.server.socks5(null, {
 
 #### Forward Proxy Client
 
-Connect through an upstream proxy:
+Open a TCP tunnel through an upstream HTTP CONNECT proxy. HTTP is only the handshake: once the proxy answers `200`, you get a plain `net.Socket` to the target, the same as a direct connection, and can speak any protocol over it:
 
 ```javascript
 const proxinator = require("proxinator");
