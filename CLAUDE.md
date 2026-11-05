@@ -16,7 +16,7 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 ## Module Map
 
 ### Proxy Components (`src/proxy/`)
-- `src/proxy/server/forward/index.js` — HTTP CONNECT proxy server. Emits "connection", "close", "error" events. Connection objects provide auth parsing, destination info, bind/error/end methods. Tracks active connections via `connectionCount()`
+- `src/proxy/server/forward/index.js` — HTTP CONNECT proxy server. CONNECT only: plain proxy requests get 405 (unless a wrapped http.Server already has a request listener). Emits "connection", "close", "error" events. Connection objects provide auth parsing, destination info, bind/error/end methods. Tracks active connections via `connectionCount()`
 - `src/proxy/server/reverse/index.js` — TCP reverse proxy server with SNI extraction. Emits "connection", "close", "error" events. Connection objects provide waitSNI, bind/error/end. Tracks active connections via `connectionCount()`
 - `src/proxy/server/socks5/index.js` — SOCKS5 proxy server. Emits "connection", "close", "error" events. Connection objects provide getAuth, getDestination, bind/error/end. Supports no-auth and username/password auth. Optional `authenticate` option for protocol-level credential validation. Tracks active connections via `connectionCount()`
 - `src/proxy/client/forward/index.js` — Connects through upstream HTTP CONNECT proxy. Accepts optional `{ lookup, socket, family }`. When `socket` provided, sends CONNECT over existing connection. Returns Promise<net.Socket>

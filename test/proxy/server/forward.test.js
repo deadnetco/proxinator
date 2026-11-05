@@ -714,6 +714,53 @@ describe("Forward Proxy Server", () => {
 		});
 	});
 
+	it("should refuse plain HTTP proxy requests with 405", (done) => {
+		proxy = createForwardServer();
+
+		proxy.on("connection", () => {
+			done(new Error("plain request must not reach the connection handler"));
+		});
+
+		proxy.http.listen(0, () => {
+			const req = http.request({
+				host: "127.0.0.1",
+				port: proxy.http.address().port,
+				method: "GET",
+				path: "http://example.com/",
+				headers: { host: "example.com" }
+			}, (res) => {
+				assert.strictEqual(res.statusCode, 405);
+				assert.strictEqual(res.headers.allow, "CONNECT");
+				res.resume();
+				res.on("end", () => {
+					done();
+				});
+			});
+
+			req.on("error", done);
+			req.end();
+		});
+	});
+
+	it("should leave plain requests to a wrapped server's own request handler", (done) => {
+		const httpServer = http.createServer((req, res) => {
+			res.writeHead(404);
+			res.end("not here");
+		});
+
+		proxy = createForwardServer(httpServer);
+
+		proxy.http.listen(0, () => {
+			http.get({ host: "127.0.0.1", port: proxy.http.address().port, path: "/" }, (res) => {
+				assert.strictEqual(res.statusCode, 404);
+				res.resume();
+				res.on("end", () => {
+					done();
+				});
+			}).on("error", done);
+		});
+	});
+
 	it("should emit error event on socket error", (done) => {
 		proxy = createForwardServer();
 

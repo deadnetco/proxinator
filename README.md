@@ -42,6 +42,8 @@ proxy.http.listen(8080);
 
 Accept HTTP CONNECT requests and tunnel connections:
 
+CONNECT only: plain proxy requests (`GET http://...`) are refused with `405 Method Not Allowed`, so nothing is relayed unencrypted by accident. If you pass your own `http.Server` that already has a request handler, plain requests are left to that handler.
+
 ```javascript
 const proxinator = require("proxinator");
 

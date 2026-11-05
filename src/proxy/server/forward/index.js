@@ -53,7 +53,7 @@ const writeResponse = (_req, socket, statusCode, statusMessage, headers) => {
 
 /**
  * Create a forward proxy server
- * @param {http.Server} [httpServerOptional] - Existing HTTP server to wrap (creates new if omitted)
+ * @param {http.Server} [httpServerOptional] - Existing HTTP server to wrap (creates new if omitted). Plain (non-CONNECT) requests get 405 unless this server already has a "request" listener
  * @returns {object} Server with `on("connection", handler)` and `http` property
  */
 module.exports = (httpServerOptional) => {
@@ -68,6 +68,24 @@ module.exports = (httpServerOptional) => {
 		_connections: new Set(),
 
 		_init: () => {
+			// CONNECT only. Plain proxy requests ("GET http://...") are refused
+			// with 405 so nothing is ever relayed unencrypted by accident, and the
+			// request does not hang until Node's requestTimeout. A wrapped server
+			// that already has its own request handler keeps it - serving plain
+			// HTTP there is the caller's explicit choice.
+			if(server.http.listenerCount("request") === 0) {
+				server.http.on("request", (req, res) => {
+					res.shouldKeepAlive = false;
+					res.writeHead(405, "Method Not Allowed", {
+						"Allow": "CONNECT",
+						"Connection": "close",
+						"Content-Length": "0",
+						"Proxy-agent": PROXY_AGENT
+					});
+					res.end();
+				});
+			}
+
 			server.http.on("connect", (req, clientSocket, head) => {
 				clientSocket.pause();
 
