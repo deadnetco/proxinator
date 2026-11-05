@@ -5,6 +5,7 @@ const isBogusIP = createResolver.isBogusIP;
 const hasBogusIPs = createResolver.hasBogusIPs;
 const shouldFilterResolve = createResolver.shouldFilterResolve;
 const DEFAULT_BOGUS_RANGES = createResolver.DEFAULT_BOGUS_RANGES;
+const DEFAULT_BOGUS_IPS = createResolver.DEFAULT_BOGUS_IPS;
 
 /**
  * Build a minimal DNS response buffer for an A record query.
@@ -152,6 +153,20 @@ describe("DNS", () => {
 			assert.strictEqual(isBogusIP("127.0.0.1", []), false);
 			assert.strictEqual(isBogusIP("0.0.0.0", []), false);
 		});
+
+		it("should detect censorship sinkhole IPs", () => {
+			DEFAULT_BOGUS_IPS.forEach((ip) => {
+				assert.strictEqual(isBogusIP(ip, DEFAULT_BOGUS_RANGES, DEFAULT_BOGUS_IPS), true);
+			});
+		});
+
+		it("should not treat sinkhole IPs as bogus without the IP list", () => {
+			assert.strictEqual(isBogusIP("81.200.2.238", DEFAULT_BOGUS_RANGES), false);
+		});
+
+		it("should not flag public IPs missing from the IP list", () => {
+			assert.strictEqual(isBogusIP("8.8.8.8", [], DEFAULT_BOGUS_IPS), false);
+		});
 	});
 
 	describe("hasBogusIPs", () => {
@@ -173,6 +188,10 @@ describe("DNS", () => {
 
 		it("should return false for single clean IP", () => {
 			assert.strictEqual(hasBogusIPs(["93.184.216.34"], DEFAULT_BOGUS_RANGES), false);
+		});
+
+		it("should return true if any IP is a sinkhole", () => {
+			assert.strictEqual(hasBogusIPs(["8.8.8.8", "109.71.197.10"], DEFAULT_BOGUS_RANGES, DEFAULT_BOGUS_IPS), true);
 		});
 	});
 
@@ -304,6 +323,40 @@ describe("DNS", () => {
 				resolver.resolve4("example.com")
 					.then((results) => {
 						assert.deepStrictEqual(results, ["127.0.0.1"]);
+						assert.strictEqual(server.getQueryCount(), 1);
+						done();
+					})
+					.catch(done);
+			});
+		});
+
+		it("should retry when result is a censorship sinkhole by default", (done) => {
+			// First query returns a RU blocklist page, second returns clean
+			createMockDnsServer(["81.200.2.238", "93.184.216.34"], (server, port) => {
+				mockServer = server;
+				const resolver = createResolver(["127.0.0.1:" + port]);
+
+				resolver.resolve4("example.com")
+					.then((results) => {
+						assert.deepStrictEqual(results, ["93.184.216.34"]);
+						assert.strictEqual(server.getQueryCount(), 2);
+						done();
+					})
+					.catch(done);
+			});
+		});
+
+		it("should not filter sinkholes when bogusIPs is empty", (done) => {
+			createMockDnsServer(["81.200.2.238"], (server, port) => {
+				mockServer = server;
+				const resolver = createResolver(["127.0.0.1:" + port], {
+					bogusRanges: [],
+					bogusIPs: []
+				});
+
+				resolver.resolve4("example.com")
+					.then((results) => {
+						assert.deepStrictEqual(results, ["81.200.2.238"]);
 						assert.strictEqual(server.getQueryCount(), 1);
 						done();
 					})

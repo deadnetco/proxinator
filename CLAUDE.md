@@ -26,7 +26,7 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 
 ### Utilities (`src/utils/`)
 - `src/utils/sni/index.js` — TLS ClientHello parser (isClientHello, parseSNI)
-- `src/utils/dns/index.js` — Factory returning RandomResolver with rate limiting, random server selection, and bogus IP filtering. Accepts optional server list (defaults to built-in list) and options (`bogusRanges`, `maxBogusRetries`). Retries resolve4/resolve6/resolve(A/AAAA) when results contain IPs in bogus ranges (loopback, private, etc.). Exports `isBogusIP`, `hasBogusIPs`, `shouldFilterResolve`, `DEFAULT_BOGUS_RANGES`
+- `src/utils/dns/index.js` — Factory returning RandomResolver with rate limiting, random server selection, and bogus IP filtering. Accepts optional server list (defaults to built-in list) and options (`bogusRanges`, `bogusIPs`, `maxBogusRetries`). Retries resolve4/resolve6/resolve(A/AAAA) when results contain IPs in bogus ranges (loopback, private, etc.) or known censorship sinkhole IPs (Great Firewall / Russian ISP block pages, `DEFAULT_BOGUS_IPS`). Exports `isBogusIP`, `hasBogusIPs`, `shouldFilterResolve`, `DEFAULT_BOGUS_RANGES`, `DEFAULT_BOGUS_IPS`
 - `src/utils/dns-cache/index.js` — Factory returning cacheable-lookup instance. Accepts optional resolver, defaults to system DNS
 - `src/utils/dns-lookup/index.js` — Convenience factory chaining dns + dnsCache. Accepts optional `(servers, options)` and forwards options to dns factory. Returns a lookup function ready for client options
 - `src/utils/balancer/index.js` — Weighted random load balancer (push, delete, getRandomCandidate)

@@ -415,15 +415,17 @@ const systemCache = proxinator.utils.dnsCache();
 
 proxinator.client.reverse(target, { lookup: systemCache.lookup });
 
-// Bogus IP filtering (enabled by default — retries when DNS returns loopback, private, etc.)
-// Customize which ranges are considered bogus:
+// Bogus IP filtering (enabled by default — retries on another random server when DNS
+// returns loopback, private, etc., or a known censorship sinkhole).
+// Customize which ranges / IPs are considered bogus:
 const filteredLookup = proxinator.utils.dnsLookup(null, {
 	bogusRanges: ["loopback", "private"],  // only filter these ranges
+	bogusIPs: ["81.200.2.238"],             // exact sinkhole IPs (default: DEFAULT_BOGUS_IPS)
 	maxBogusRetries: 5                      // retry up to 5 times (default: 3)
 });
 
 // Disable bogus filtering entirely:
-const unfilteredLookup = proxinator.utils.dnsLookup(null, { bogusRanges: [] });
+const unfilteredLookup = proxinator.utils.dnsLookup(null, { bogusRanges: [], bogusIPs: [] });
 
 // IPv4 only — restrict DNS resolution to A records
 proxinator.client.reverse(target, { lookup, family: 4 });
@@ -436,6 +438,8 @@ proxinator.client.reverse(target, { family: 6 });
 // Via agent
 const ipv4Agent = proxinator.client.agent([proxyA], { lookup, family: 4 });
 ```
+
+The random resolver picks public DNS servers from all over the world, and some of them sit behind national DNS censorship. The Great Firewall of China and Russian ISPs (enforcing the national blocklist) answer blocked domains — VPN and proxy hosts among them — with sinkhole IPs: block pages or blackhole addresses that refuse or drop every connection. Once cached, such an answer breaks every dial to that host. `DEFAULT_BOGUS_IPS` (exported from `proxinator.utils.dns`) lists known sinkholes; an answer containing one is retried on other random servers, which protects lookups from DNS blocks in those countries. The bundled `data/valid-dns-servers.json` also excludes Russian and Chinese resolvers.
 
 #### Hostname Obfuscation
 

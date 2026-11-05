@@ -14,16 +14,41 @@ const DEFAULT_BOGUS_RANGES = [
 	"carrierGradeNat", "multicast", "broadcast", "uniqueLocal"
 ];
 
+/**
+ * Sinkhole IPs that censoring resolvers hand out instead of the real answer.
+ * The Great Firewall of China and Russian ISPs (enforcing the national
+ * blocklist) answer blocked domains - VPN and proxy hosts among them - with a
+ * block page or blackhole address that refuses or drops every connection.
+ * Treating these answers as bogus makes the resolver retry on another random
+ * server, so lookups keep working even when the picked server sits behind a
+ * DNS block in one of those countries.
+ * @type {string[]}
+ */
+const DEFAULT_BOGUS_IPS = [
+	// site-bl.cpx.ru (RU blocklist page)
+	"81.200.2.238",
+	// JSC Teleport Telecom (RU blocklist page)
+	"109.71.197.10",
+	// Akamai addresses filtering resolvers answer for *.proxy.nordvpn.com
+	"104.77.161.196",
+	"2.18.188.209"
+];
+
 /** @type {string[]} Resolve methods that return IP addresses and should be filtered */
 const IP_METHODS = ["resolve4", "resolve6"];
 
 /**
- * Check if an IP address falls within any of the bogus ranges.
+ * Check if an IP address is a known sinkhole or falls within any of the bogus ranges.
  * @param {string} ip - IP address string
  * @param {string[]} bogusRanges - Array of ipaddr.js range name strings
- * @returns {boolean} True if the IP is in a bogus range
+ * @param {string[]} [bogusIPs] - Exact IP addresses to treat as bogus (default: none)
+ * @returns {boolean} True if the IP is bogus
  */
-function isBogusIP(ip, bogusRanges) {
+function isBogusIP(ip, bogusRanges, bogusIPs) {
+	if (Array.isArray(bogusIPs) && bogusIPs.indexOf(ip) !== -1) {
+		return true;
+	}
+
 	try {
 		const parsed = ipaddr.parse(ip);
 		return bogusRanges.indexOf(parsed.range()) !== -1;
@@ -36,10 +61,11 @@ function isBogusIP(ip, bogusRanges) {
  * Check if any IP in a result array is bogus.
  * @param {string[]} results - Array of IP address strings
  * @param {string[]} bogusRanges - Array of ipaddr.js range name strings
+ * @param {string[]} [bogusIPs] - Exact IP addresses to treat as bogus (default: none)
  * @returns {boolean} True if any result IP is bogus
  */
-function hasBogusIPs(results, bogusRanges) {
-	return results.some((ip) => isBogusIP(ip, bogusRanges));
+function hasBogusIPs(results, bogusRanges, bogusIPs) {
+	return results.some((ip) => isBogusIP(ip, bogusRanges, bogusIPs));
 }
 
 /**
@@ -97,12 +123,14 @@ class RandomResolver extends dns.promises.Resolver {
  * @param {string[]} [servers] - Array of DNS server IP addresses. Defaults to built-in valid-dns-servers.json
  * @param {Object} [options] - Configuration options
  * @param {string[]} [options.bogusRanges] - ipaddr.js range name strings to treat as bogus (default: DEFAULT_BOGUS_RANGES). Pass [] to disable
+ * @param {string[]} [options.bogusIPs] - Exact sinkhole IPs to treat as bogus (default: DEFAULT_BOGUS_IPS). Pass [] to disable
  * @param {number} [options.maxBogusRetries] - Number of retries on bogus results (default: 3, so up to 4 total attempts)
  * @returns {RandomResolver} Resolver instance with rate-limited random server selection
  */
 module.exports = (servers, options) => {
 	const opts = options || {};
 	const bogusRanges = Array.isArray(opts.bogusRanges) ? opts.bogusRanges : DEFAULT_BOGUS_RANGES;
+	const bogusIPs = Array.isArray(opts.bogusIPs) ? opts.bogusIPs : DEFAULT_BOGUS_IPS;
 	const maxBogusRetries = typeof opts.maxBogusRetries === "number" ? opts.maxBogusRetries : 3;
 
 	const serverList = servers || require("../../../data/valid-dns-servers.json")
@@ -124,7 +152,7 @@ module.exports = (servers, options) => {
 	function retryOnBogus(method, args, retriesLeft) {
 		return rateLimitedCall(method, args)
 			.then((results) => {
-				if (retriesLeft <= 0 || !hasBogusIPs(results, bogusRanges)) {
+				if (retriesLeft <= 0 || !hasBogusIPs(results, bogusRanges, bogusIPs)) {
 					return results;
 				}
 
@@ -136,7 +164,7 @@ module.exports = (servers, options) => {
 
 	RESOLVE_METHODS.forEach((method) => {
 		resolver[method] = function (...args) {
-			if (bogusRanges.length > 0 && shouldFilterResolve(method, args)) {
+			if ((bogusRanges.length > 0 || bogusIPs.length > 0) && shouldFilterResolve(method, args)) {
 				return retryOnBogus(method, args, maxBogusRetries);
 			}
 
@@ -151,3 +179,4 @@ module.exports.isBogusIP = isBogusIP;
 module.exports.hasBogusIPs = hasBogusIPs;
 module.exports.shouldFilterResolve = shouldFilterResolve;
 module.exports.DEFAULT_BOGUS_RANGES = DEFAULT_BOGUS_RANGES;
+module.exports.DEFAULT_BOGUS_IPS = DEFAULT_BOGUS_IPS;
