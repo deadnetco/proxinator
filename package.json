@@ -10,7 +10,8 @@
   "scripts": {
     "test": "nyc --reporter=text --reporter=text-summary mocha",
     "lint": "eslint src/",
-    "build:types": "tsc"
+    "build:types": "tsc",
+    "benchmark": "node dev/benchmark"
   },
   "dependencies": {
     "cacheable-lookup": "^6",

@@ -11,6 +11,7 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 - `yarn test` — run tests with coverage (nyc + mocha)
 - `yarn lint` — lint source code (eslint)
 - `yarn build:types` — generate TypeScript definitions from JSDoc (output in `types/`, gitignored)
+- `yarn benchmark` — localhost proxy benchmark (`dev/benchmark/`)
 
 ## Module Map
 
@@ -42,6 +43,7 @@ Proxinator is a composable Node.js proxy toolkit library supporting forward (HTT
 
 ### Dev Tools (`dev/`)
 - `dev/dns-checker.js` — Validates DNS servers and generates `data/valid-dns-servers.json`
+- `dev/benchmark/index.js` — `yarn benchmark`. Compares direct vs forward/socks5/reverse on localhost: conn/s, connect & RTT latency, download/upload MiB/s. Forks `dev/benchmark/proxies` (proxinator servers) and `dev/benchmark/targets` (echo/bulk/sink servers) so each runs on its own event loop. Every tunnel starts with a real captured ClientHello so reverse can route by SNI (`<target>.bench`). Env tunables: `BENCH_MODES`, `BENCH_CONNECTIONS`, `BENCH_CONCURRENCY`, `BENCH_PINGS`, `BENCH_MB`, `BENCH_STREAMS`
 
 ## Testing
 

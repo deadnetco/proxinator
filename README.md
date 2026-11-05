@@ -510,6 +510,10 @@ This means:
 
 The result is that sustained throughput is limited by the OS and network, not by Node.js.
 
+### Benchmark
+
+`yarn benchmark` runs forward, SOCKS5 and reverse proxies against a direct connection on localhost (client, proxy and targets in separate processes) and reports connection rate, connect latency, round-trip latency and download/upload throughput. Tune with `BENCH_MODES`, `BENCH_CONNECTIONS`, `BENCH_CONCURRENCY`, `BENCH_PINGS`, `BENCH_MB`, `BENCH_STREAMS`.
+
 ## Planned Features
 
 - Proxy checker — validate proxy liveness, latency, and anonymity
